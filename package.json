@@ -2,6 +2,7 @@
   "name": "apirestcontroledeorcamento",
   "version": "1.0.0",
   "description": "Controle de orçamento",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
