@@ -1,11 +1,16 @@
 /* Importando Lib e Frameworks */
 import express from "express";
 import db from "./config/dbConnect.js";
+import router from "./routers/index.js";
 
-/* Conexão com a porta  */
+/* Criando variaveis e passando os metodos */
 const app = express()
-app.use(express.json())
 const port = process.env.PORT || 3000;
+app.use(express.json())
+router(app);
+
+
+/* Conexão com a porta do servidor e banco de dados */
 db.on('error', console.log.bind(console, `Erro de conexão!.`));
 db.once('open', ()=> {
     console.log(`Conexão feito com sucesso!.`)
