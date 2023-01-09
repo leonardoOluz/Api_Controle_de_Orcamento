@@ -50,11 +50,122 @@ class receitasControllers {
     }
     static listarTodasReceitas = (req, res) => {
         Receitas.find()
-        .exec((erro, dbReceitas) => {
-            if(!erro){
-                res.status(200).json(dbReceitas)
+            .exec((erro, dbReceitas) => {
+                if (!erro) {
+                    res.status(200).json(dbReceitas)
+                } else {
+                    res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
+                }
+            })
+    }
+    static detalhesReceitaId = (req, res) => {
+        const id = req.params.id;
+        Receitas.findById(id, (err, dbReceita) => {
+            if (!dbReceita) {
+                console.log(id)
+                res.status(422).json({ msg: `Não foi possível encontrar, verifique o Id informado!.` })
+            } else if (err) {
+                res.status(500).json({ msg: `Erro no servidor tente novamente mais tarde!.`, erro: `${err.message}` })
             } else {
-                res.status(500).json({msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.`})
+                return res.status(200).json(dbReceita)
+            }
+        })
+    }
+    static atualizarDadosReceitaId = (req, res) => {
+        // criando variaveis para armazenar o corpo da requisição
+        const { descricao, valor, data } = req.body
+        const id = req.params.id;
+        // verificações para atualização
+        Receitas.findById(id, (err, dbReceitaId) => {
+            // verificando o corpo da requisição
+            if (!dbReceitaId) {
+                res.status(500).json({ msg: `Id inexistente!` });
+            } else if (err) {
+                res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+            } else if (!descricao) {
+                res.status(422).json({ msg: `Descrição é obrigatório!` });
+            } else if (!valor) {
+                res.status(422).json({ msg: `Valor é obrigatório!` });
+            } else if (!data) {
+                res.status(422).json({ msg: `Data é obrigatório` });
+            } else {
+                // criando variaveis para data 
+                let dbData = Number(dbReceitaId.data.slice(5, 7));
+                let dataNew = Number(data.slice(5, 7));
+                // Verificando as datas, se a nova data é igual ou maior a do db.
+                if (dataNew >= dbData) {
+                    // verificar se a descrição é a mesma.
+                    if (dbReceitaId.descricao !== descricao) {
+                        // verificar se há outra descrição idêntica!.
+                        Receitas.findOne({ 'descricao': descricao })
+                            .exec((error, dbReceitaOne) => {
+                                if (!error) {
+                                    if (!dbReceitaOne) {
+                                        Receitas.findByIdAndUpdate(id, { $set: req.body })
+                                            .exec((err) => {
+                                                if (!err) {
+                                                    res.status(201).json({ msg: `atualizado por descricão diferente!` })
+                                                } else {
+                                                    res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                }
+                                            })
+                                    } else {
+                                        res.status(422).json({ msg: `Já existe uma descrição com esse nome, porfavor utilize outro!` })
+                                    }
+                                }
+                            })
+                    } else { // Se a descrição for a mesma, verificar se não há outra descrição.
+                        Receitas.findOne({ 'descricao': descricao })
+                            .exec((err, dbReceitaOne) => {
+                                let dbDataOne = Number(dbReceitaOne.data.slice(5, 7));
+                                if (!err) {
+                                    // Verificar se há outro objeto com mesma descrição
+                                    if (dbReceitaOne) {
+                                        // verificar se é o mesmo id
+                                        if (dbReceitaOne.id !== id) {
+                                            // se há outra descrição verificar a data
+                                            if (dataNew >= dbDataOne) {
+                                                // atualizar receita com mesma descrição e data diferente
+                                                Receitas.findByIdAndUpdate(id, { $set: req.body })
+                                                    .exec((err) => {
+                                                        if (!err) {
+                                                            res.status(201).json({ msg: `Atualizado com a mesma descrição!` })
+                                                        } else {
+                                                            res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                        }
+                                                    })
+                                            } else {
+                                                res.status(422).json({ msg: `Utilize outra data!` })
+                                            }
+                                        } else {
+                                            Receitas.findByIdAndUpdate(id, { $set: req.body })
+                                                .exec((err) => {
+                                                    if (!err) {
+                                                        res.status(201).json({ msg: `Atualizado com a mesma descrição!` })
+                                                    } else {
+                                                        res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                    }
+                                                })
+                                        }
+                                    } else {
+                                        // atualizar receita se acaso não encontrar outra descrição com mesmo nome
+                                        Receitas.findByIdAndUpdate(id, { $set: req.body })
+                                            .exec((err) => {
+                                                if (!err) {
+                                                    res.status(201).json({ msg: `Atualizado com a mesma descrição sem verificar Id!` })
+                                                } else {
+                                                    res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                }
+                                            })
+                                    }
+                                } else {
+                                    res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                }
+                            })
+                    }
+                } else {
+                    res.status(422).json({ msg: `Data inválida, coloque uma data válida` })
+                }
             }
         })
     }
