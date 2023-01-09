@@ -48,6 +48,16 @@ class receitasControllers {
                 }
             })
     }
+    static listarTodasReceitas = (req, res) => {
+        Receitas.find()
+        .exec((erro, dbReceitas) => {
+            if(!erro){
+                res.status(200).json(dbReceitas)
+            } else {
+                res.status(500).json({msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.`})
+            }
+        })
+    }
 }
 
 export default receitasControllers;
