@@ -34,6 +34,15 @@ class despesasControllers {
             })
         }
     }
+    static listagemDeDespesas = (req, res) => {
+        Despesas.find((err, dbDespesas) => {
+            if(!err){
+                res.status(200).json(dbDespesas)
+            } else {
+                res.status(500).json({msg: `Não foi possível listar as despesas tente novamente mais tarde!`})
+            }
+        })
+    }
 }
 
 export default despesasControllers;

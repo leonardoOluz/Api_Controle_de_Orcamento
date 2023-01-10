@@ -5,5 +5,6 @@ const router = express.Router();
 
 router
   .post('/despesas', despesasControllers.cadastrarDespesas)
+  .get('/despesas',despesasControllers.listagemDeDespesas)
 
 export default router;
