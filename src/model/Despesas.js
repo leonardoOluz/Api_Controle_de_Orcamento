@@ -3,9 +3,9 @@ import mongoose from "mongoose";
 const despesaSchema = mongoose.Schema(
     {
         id: {type: String},
-        descricao: {type: String},
-        valor: {type: Number},
-        data: {type: String}
+        descricao: {type: String, required: true},
+        valor: {type: Number, required: true},
+        data: {type: String, required: true}
     }
 )
 

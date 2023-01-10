@@ -19,8 +19,8 @@ class receitasControllers {
                     return res.status(422).json({ msg: `Preencha o campo "Descrição" Campo obrigátorio` })
                 } else if (!valor) {
                     return res.status(422).json({ msg: `Preencha o campo "Valor" Campo obrigátorio` })
-                } else if (!data) {
-                    return res.status(422).json({ msg: `Preencha o campo "Data" Campo obrigátorio` })
+                } else if (!data || (data.length < 10)) {
+                    return res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` })
                 } else {
                     if (dbDescricao) {
                         let dbDataMes = Number(dbDescricao.data.slice(5, 7))
