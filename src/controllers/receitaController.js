@@ -169,6 +169,31 @@ class receitasControllers {
             }
         })
     }
+    static deletarReceitaPorId = (req, res) => {
+        /* Criando variavel para armarzenar o id da requisição */
+        const id = req.params.id;
+        /* Verificando se existe o Id passado */
+        Receitas.findById(id, (err, dbReceita) => {
+            /* Verificando se há erro na requisição */
+            if (!err){
+                /* verificando se existe o id solicitado */
+                if (dbReceita) {
+                    /*  Se existir o id o mesmo é excluido */
+                    Receitas.findByIdAndDelete(id, (err) => {
+                        if (!err) {
+                            res.status(201).json({ msg: `Receita de id: ${id} excluida com sucesso!` })
+                        } else {
+                            res.status(500).json({ msg: `Erro no servidor, tente novamente mais tarde!` })
+                        }
+                    })
+                } else { // se não existir o id, uma mensagem é exibida
+                    res.status(422).json({msg: `O id informado não existe!`})
+                }
+            } else {
+                res.status(500).json({msg: `Ocorreu um erro na requisição, Verifique o id informado!`})
+            }            
+        })
+    }
 }
 
 export default receitasControllers;
