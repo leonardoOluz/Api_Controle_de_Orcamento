@@ -86,8 +86,8 @@ class receitasControllers {
                 res.status(422).json({ msg: `Descrição é obrigatório!` });
             } else if (!valor) {
                 res.status(422).json({ msg: `Valor é obrigatório!` });
-            } else if (!data) {
-                res.status(422).json({ msg: `Data é obrigatório` });
+            } else if (!data || (data.length < 10)) {
+                res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` });
             } else {
                 // criando variaveis para data 
                 let dbData = Number(dbReceitaId.data.slice(5, 7));

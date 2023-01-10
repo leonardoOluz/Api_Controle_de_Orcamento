@@ -36,12 +36,44 @@ class despesasControllers {
     }
     static listagemDeDespesas = (req, res) => {
         Despesas.find((err, dbDespesas) => {
-            if(!err){
+            if (!err) {
                 res.status(200).json(dbDespesas)
             } else {
-                res.status(500).json({msg: `Não foi possível listar as despesas tente novamente mais tarde!`})
+                res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
             }
         })
+    }
+    static detalharDespesaPorId = (req, res) => {
+        /* Criando variavel id para armazenar os paramentros da requisição */
+        const id = req.params.id;
+        /*  Verificando no banco a existência do id */
+        Despesas.findById(id, (err, dbDespesa) => {
+            if(dbDespesa){
+                /*  Se acaso existir o mesmo é enviado em formado json*/
+                if(!err){
+                    res.status(200).json(dbDespesa);
+                }else {
+                    res.status(500).json({msg: `${err.message} Erro ao requisitar o servidor, tente novamente mais tarde!`})
+                }
+            } else { // se não ouver os dados é enviado uma msg informando a inexistência do dado
+                res.status(422).json({msg: `Não foi possível identificar o id: ${id}, O mesmo pode não existir no banco de dados! `})
+            }
+        })        
+
+    }
+    static atualizarDespesaPorId = (req, res) => {
+        /* Criando variaveis para os parâmentros */
+        const {descricao, valor, data} = req.body;
+        const id = req.params.id;
+        if (!descricao) {
+            res.status(422).json({ msg: `Descrição é obrigatório!` });
+        } else if (!valor) {
+            res.status(422).json({ msg: `Valor é obrigatório!` });
+        } else if (!data || (data.length < 10)) {
+            res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` });
+        } else {
+            res.status(200).json({msg: `Ok`})
+        }        
     }
 }
 
