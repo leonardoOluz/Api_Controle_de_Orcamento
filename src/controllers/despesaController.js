@@ -138,6 +138,24 @@ class despesasControllers {
             })
         }
     }
+    static deletarDespesaPorId = (req, res) => {
+        /* criando variavel para armazenar o Id da requisição */
+        const id = req.params.id;
+        /* Procurando o ID e deletando */
+        Despesas.findByIdAndDelete(id,(err, dbDespesaDelete) => {
+            /* Se não tiver erro na digitanção do ID, será verificado a existência do ID*/
+            if (!err) {
+                /* Se acaso existir o ID uma mensagem de deletado será enviado */
+                if(dbDespesaDelete){
+                    res.status(201).json({msg: `Despesa deletada com sucesso!.`})
+                } else { // se não existir o ID uma mensagem de ID inexistente é enviada
+                    res.status(422).json({msg: `O ID solicitado não existe!`})
+                }                
+            } else { // se o ID estiver digitado incorreto, uma mensagem de ID inválido será enviada.
+                res.status(422).json({msg: `Erro, digite um ID válido!`})
+            }
+        })        
+    }
 }
 
 export default despesasControllers;

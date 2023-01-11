@@ -8,5 +8,6 @@ router
   .get('/despesas', despesasControllers.listagemDeDespesas)
   .get('/despesas/:id', despesasControllers.detalharDespesaPorId)
   .put('/despesas/:id',despesasControllers.atualizarDespesaPorId)
+  .delete('/despesas/:id', despesasControllers.deletarDespesaPorId)
 
 export default router;
