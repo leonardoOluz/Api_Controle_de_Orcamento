@@ -11,52 +11,99 @@ class receitasControllers {
                 data
             }
         )
-        Receitas.findOne({ 'descricao': descricao })
-            .exec((error, dbDescricao) => {
-                if (error) {
-                    res.status(500).json({ msg: `${error.message} Erro do servidor, tente novamente mais tarde!` })
-                } else if (!descricao) {
-                    return res.status(422).json({ msg: `Preencha o campo "Descrição" Campo obrigátorio` })
-                } else if (!valor) {
-                    return res.status(422).json({ msg: `Preencha o campo "Valor" Campo obrigátorio` })
-                } else if (!data || (data.length < 10)) {
-                    return res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` })
-                } else {
-                    if (dbDescricao) {
-                        let dbDataMes = Number(dbDescricao.data.slice(5, 7))
-                        let dataMesNew = Number(data.slice(5, 7))
-                        if (dataMesNew > dbDataMes) {
-                            receitas.save((err) => {
-                                if (!err) {
-                                    res.status(201).json({ msg: `Receita cadastrada com sucesso! mesmo com descricao.` })
-                                } else {
-                                    res.status(500).json({ message: `${err.message}` })
-                                }
-                            })
+        if (!descricao) {
+            return res.status(422).json({ msg: `Preencha o campo "Descrição" Campo obrigátorio` })
+        } else if (!valor) {
+            return res.status(422).json({ msg: `Preencha o campo "Valor" Campo obrigátorio` })
+        } else if (!data || (data.length < 10)) {
+            return res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` })
+        } else {
+
+            Receitas.find({ 'descricao': descricao })
+                .exec((error, dbDescricao) => {
+                    if (!error) {
+                        /* Verificar se retorna objetos com descrição idênticas */
+                        if (dbDescricao == '') {
+                            /* Se não ouver descrição verificar a data atual */
+                            const d = new Date();
+                            const dataNow = d.getMonth();
+                            /* Se a data for igual ou superior a informada salvar a nova receita */
+                            if (Number(data.slice(5, 7)) >= (dataNow + 1)) {
+                                receitas.save((err) => {
+                                    if (!err) {
+                                        res.status(201).json({ msg: `Receita cadastrada com sucesso!. Descrição nova` })
+                                    } else {
+                                        res.status(500).json({ message: `${err.message}` })
+                                    }
+                                })
+                            } else { // se a data for inferior avisar que a data é inválida!
+                                res.status(422).json({ msg: `Use uma data válida!` })
+                            }
                         } else {
-                            return res.status(422).json({ msg: `A descrição ${descricao} está duplicada no mesmo mês ${dataMesNew}, utilize a descrição já existente para atualizar! ` })
+                            /* Função para percorrer todos os objetos com a mesma data */
+                            let dataChecada = checkData(data, dbDescricao)
+                            const d = new Date();
+                            const dataNow = d.getMonth();
+                            /* Verificar se a data não é inferior que a atual! */
+                            if (Number(data.slice(5, 7)) >= (dataNow + 1)) {
+                                /*  Se ouver data repetida com mesma descrição enviar mensagem de descrição e data repetida */
+                                if (dataChecada.includes(Number(data.slice(5, 7)))) {
+                                    res.status(201).json({ msg: `Já existe uma descrição com a mesma data! Se desejar atualize a descrição com data informada!` })
+                                } else {// se não ouver data repetida com mesma descrição, criar nova receita
+                                    receitas.save((err) => {
+                                        if (!err) {
+                                            res.status(201).json({ msg: `Receita cadastrada com sucesso!. mesma descrição data diferente` })
+                                        } else {
+                                            res.status(500).json({ message: `${err.message}` })
+                                        }
+                                    })
+                                }
+                            } else {
+                                res.status(422).json({ msg: `Use uma data válida!` })
+                            }
                         }
                     } else {
-                        receitas.save((err) => {
-                            if (!err) {
-                                res.status(201).json({ msg: `Receita cadastrada com sucesso!.` })
-                            } else {
-                                res.status(500).json({ message: `${err.message}` })
-                            }
-                        })
+                        res.status(500).json({ msg: `Erro ao criar receita, tente novamente mais tarde!` })
                     }
+                })
+        }
+        function checkData(data, dbDat) {
+            let control = [];
+            dbDat.forEach((obj) => {
+
+                if (Number(data.slice(5, 7)) === Number(obj.data.slice(5, 7))) {
+                    control.push(Number(obj.data.slice(5, 7)))
                 }
+
             })
+            console.log(control)
+            return control;
+
+        }
     }
     static listarTodasReceitas = (req, res) => {
-        Receitas.find()
-            .exec((erro, dbReceitas) => {
-                if (!erro) {
-                    res.status(200).json(dbReceitas)
-                } else {
-                    res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
-                }
-            })
+        const descricao = req.query.descricao
+        if (descricao) {
+            Receitas.find({ 'descricao': descricao })
+                .exec((erro, dbReceitas) => {
+                    if (!erro) {
+                        res.status(200).json(dbReceitas)
+                    } else {
+                        res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
+                    }
+                })
+        } else {
+            Receitas.find()
+                .exec((erro, dbReceitas) => {
+                    if (!erro) {
+                        res.status(200).json(dbReceitas)
+                    } else {
+                        res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
+                    }
+                })
+        }
+
+
     }
     static detalhesReceitaId = (req, res) => {
         const id = req.params.id;
@@ -175,7 +222,7 @@ class receitasControllers {
         /* Verificando se existe o Id passado */
         Receitas.findById(id, (err, dbReceita) => {
             /* Verificando se há erro na requisição */
-            if (!err){
+            if (!err) {
                 /* verificando se existe o id solicitado */
                 if (dbReceita) {
                     /*  Se existir o id o mesmo é excluido */
@@ -187,11 +234,11 @@ class receitasControllers {
                         }
                     })
                 } else { // se não existir o id, uma mensagem é exibida
-                    res.status(422).json({msg: `O id informado não existe!`})
+                    res.status(422).json({ msg: `O id informado não existe!` })
                 }
             } else {
-                res.status(500).json({msg: `Ocorreu um erro na requisição, Verifique o id informado!`})
-            }            
+                res.status(500).json({ msg: `Ocorreu um erro na requisição, Verifique o id informado!` })
+            }
         })
     }
 }
