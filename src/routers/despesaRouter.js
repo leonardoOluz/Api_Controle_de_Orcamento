@@ -7,6 +7,7 @@ router
   .post('/despesas', despesasControllers.cadastrarDespesas)
   .get('/despesas/', despesasControllers.listarTodasDespesas)
   .get('/despesas/:id', despesasControllers.detalharDespesaPorId)
+  .get('/despesas/ano/mes',despesasControllers.listarDespesasPorMesAno)
   .put('/despesas/:id',despesasControllers.atualizarDespesaPorId)
   .delete('/despesas/:id', despesasControllers.deletarDespesaPorId)
 

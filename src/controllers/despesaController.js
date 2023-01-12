@@ -272,6 +272,45 @@ class despesasControllers {
             }
         })
     }
+    static listarDespesasPorMesAno = (req, res) => {
+        /* variaveis da requisição */
+        const { ano, mes } = req.query;
+        /* .find para puxar o banco de dados */
+        Despesas.find()
+            .exec((err, dbAnoMes) => {
+                if (!err) {
+                    /* Verificar as datas do banco de dado e retornar a requisitadas */
+                    const checkDbAnoMes = checkingDbAnoMes(dbAnoMes);
+                    /* Se não ouver dados no retorno da função checkingDbAnoMes enviar msg de não encontrado*/
+                    if(checkDbAnoMes == ''){
+                        res.status(422).json({msg: `Não há despesas no mês informado => ${ano}-${mes}`})
+                    }else {// se ouver dados enviar.
+                        res.status(200).json(checkDbAnoMes)
+                    }
+                } else {
+                    res.status(422).json({ msg: `Erro tente mais tarde!` })
+                }
+            })
+
+        function checkingDbAnoMes(dbAnoMes) {
+            let data
+            let checking = [];
+            dbAnoMes.forEach((obj) => {
+                for (let i = 0; i <= 3; i++) {
+                    for (let j = 0; j <= 9; j++) {
+                        data = `${ano}-${mes}-${i}${j}`
+                        if (data == `${ano}-${mes}-31`) {
+                            break
+                        } else if (data === obj.data) {
+                            checking.push(obj)
+                        }
+                    }
+                }
+            })
+            return checking;
+        }
+
+    }
 }
 
 export default despesasControllers;

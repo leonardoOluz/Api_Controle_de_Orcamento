@@ -6,6 +6,7 @@ const router = express.Router();
 router
   .post('/receitas', receitaController.cadastrarReceitas)
   .get('/receitas/',receitaController.listarTodasReceitas)
+  .get('/receitas/ano/mes',receitaController.listarReceitasPorMesAno)
   .get('/receitas/:id', receitaController.detalhesReceitaId)
   .put('/receitas/:id',receitaController.atualizarDadosReceitaId)
   .delete('/receitas/:id',receitaController.deletarReceitaPorId)

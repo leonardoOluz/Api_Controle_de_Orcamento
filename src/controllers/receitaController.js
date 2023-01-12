@@ -83,6 +83,7 @@ class receitasControllers {
     }
     static listarTodasReceitas = (req, res) => {
         const descricao = req.query.descricao
+        /* Se for passado as descrições entra no if para achar somente as descrições passada*/
         if (descricao) {
             Receitas.find({ 'descricao': descricao })
                 .exec((erro, dbReceitas) => {
@@ -92,7 +93,7 @@ class receitasControllers {
                         res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
                     }
                 })
-        } else {
+        } else { // se não pesquisa todas receitas e envia
             Receitas.find()
                 .exec((erro, dbReceitas) => {
                     if (!erro) {
@@ -240,6 +241,49 @@ class receitasControllers {
                 res.status(500).json({ msg: `Ocorreu um erro na requisição, Verifique o id informado!` })
             }
         })
+    }
+    static listarReceitasPorMesAno = (req, res) => {
+        const { ano, mes } = req.query
+        Receitas.find()
+            .exec((err, dbReceitas) => {
+                if (!err) {                    
+                    const resultDbData = checkData(dbReceitas);
+                    if (resultDbData == '') {
+                        res.status(422).json({msg: `Não há receitas nesta data ${ano}-${mes}`})
+                    }else {
+                        res.status(200).json(resultDbData)
+                    }
+                    // 
+                } else {
+                    res.status(422).json({msg: `erro`})
+                }                
+            })
+
+            function checkData(dbReceitas){
+                /* Variaveis para controlar e armazenar resultados */
+                let data;
+                let checkDbdata =[];
+                /* Usando o forEach para verificar dentro de cada obj a data */
+                dbReceitas.forEach((obj) => {
+                    for (let i = 0; i <= 3; i++) {
+                        for (let j = 0; j <= 9; j++) {
+                            data = `${ano}-${mes}-${i}${j}`
+                            if (data === `${ano}-${mes}-32`) {
+                                break
+                            } else if (data === `${ano}-${mes}-00`) {
+                                continue;
+                            } else {
+                                if (obj.data === data) {
+                                    checkDbdata.push(obj)
+                                }else {
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                })
+                return checkDbdata;
+            }
     }
 }
 
