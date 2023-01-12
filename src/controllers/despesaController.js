@@ -76,14 +76,30 @@ class despesasControllers {
             }
         }
     }
-    static listagemDeDespesas = (req, res) => {
-        Despesas.find((err, dbDespesas) => {
-            if (!err) {
-                res.status(200).json(dbDespesas)
-            } else {
-                res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
-            }
-        })
+    static listarTodasDespesas = (req, res) => {
+        const descricao = req.query.descricao
+
+        if (descricao) {
+            Despesas.find({ 'descricao': descricao }, (err, dbDescricao) => {
+                if (!err) {
+                    res.status(200).json(dbDescricao)
+                } else {
+                    res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
+                }
+            })
+                
+        } else {
+            Despesas.find((err, dbDespesas) => {
+                if (!err) {
+                    res.status(200).json(dbDespesas)
+                } else {
+                    res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
+                }
+            })
+        }
+
+
+
     }
     static detalharDespesaPorId = (req, res) => {
         /* Criando variavel id para armazenar os paramentros da requisição */
