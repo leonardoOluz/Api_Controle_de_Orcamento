@@ -1,4 +1,5 @@
 import Receitas from '../model/Receitas.js';
+import Despesas from '../model/Despesas.js';
 
 class receitasControllers {
 
@@ -246,44 +247,169 @@ class receitasControllers {
         const { ano, mes } = req.query
         Receitas.find()
             .exec((err, dbReceitas) => {
-                if (!err) {                    
+                if (!err) {
                     const resultDbData = checkData(dbReceitas);
                     if (resultDbData == '') {
-                        res.status(422).json({msg: `Não há receitas nesta data ${ano}-${mes}`})
-                    }else {
+                        res.status(422).json({ msg: `Não há receitas nesta data ${ano}-${mes}` })
+                    } else {
                         res.status(200).json(resultDbData)
                     }
                     // 
                 } else {
-                    res.status(422).json({msg: `erro`})
-                }                
+                    res.status(422).json({ msg: `erro` })
+                }
             })
 
-            function checkData(dbReceitas){
-                /* Variaveis para controlar e armazenar resultados */
-                let data;
-                let checkDbdata =[];
-                /* Usando o forEach para verificar dentro de cada obj a data */
-                dbReceitas.forEach((obj) => {
-                    for (let i = 0; i <= 3; i++) {
-                        for (let j = 0; j <= 9; j++) {
-                            data = `${ano}-${mes}-${i}${j}`
-                            if (data === `${ano}-${mes}-32`) {
-                                break
-                            } else if (data === `${ano}-${mes}-00`) {
-                                continue;
+        function checkData(dbReceitas) {
+            /* Variaveis para controlar e armazenar resultados */
+            let data;
+            let checkDbdata = [];
+            /* Usando o forEach para verificar dentro de cada obj a data */
+            dbReceitas.forEach((obj) => {
+                for (let i = 0; i <= 3; i++) {
+                    for (let j = 0; j <= 9; j++) {
+                        data = `${ano}-${mes}-${i}${j}`
+                        if (data === `${ano}-${mes}-32`) {
+                            break
+                        } else if (data === `${ano}-${mes}-00`) {
+                            continue;
+                        } else {
+                            if (obj.data === data) {
+                                checkDbdata.push(obj)
                             } else {
-                                if (obj.data === data) {
-                                    checkDbdata.push(obj)
-                                }else {
-                                    continue;
-                                }
+                                continue;
                             }
                         }
                     }
-                })
-                return checkDbdata;
+                }
+            })
+            return checkDbdata;
+        }
+    }
+    static resumoDoMes = (req, res) => {
+        const { ano, mes } = req.query;
+        /* Puxando informações do banco de dados! */
+        Receitas.find()
+            .exec((err, dbReceitas) => {
+                if (!err) {
+                    /* Verificando se tem informações de receitas no banco */
+                    if (dbReceitas == '') {// se acaso não tiver receita, verificar se há despesas.
+                        Despesas.find()
+                            .exec((err, dbDespesas) => {
+                                if (!err) {
+                                    /* Verificar se tem informações de despesas no banco */
+                                    if (dbDespesas == '') {// se acaso não ouver informações de despesas, enviar mensagem de que não há dados no banco de receita e despesas.
+                                        res.status(422).json({ msg: `Não é possivel detalhar as informações por não existir dados de receita e depesas` })
+                                    } else {// se ouver dados de Despesas, verificar a data e mês para resumir valores total da despesas do mes e total de cada categoria
+                                        /* Filtrar todos os dados por data informada */
+                                        const datasVerificadas = checkPorData(dbDespesas)
+                                        if (datasVerificadas == '') {
+                                            res.status(422).json({ msg: `Não há informações na data solicitada!` })
+                                        } else {
+                                            /* Filtrar os dados para somar gastos total de despesas e por categoria */
+                                            const datasVerificadas = checkPorData(dbDespesas)                                           
+                                            if (datasVerificadas == '') {
+                                                res.status(422).json({ msg: `Não há informações na data solicitada!` })
+                                            } else {
+                                                /* Filtrar os dados para somar gastos total de despesas e por categoria */
+                                                const totGastosMes = checkPorValores(datasVerificadas, dbReceitas);
+                                                res.status(200).json(totGastosMes)
+                                            }
+                                        }
+                                        /* criar codigo para resumo de despesas aqui*** */
+                                    }
+                                } else {// se ouver erro na pesquisa de banco de dados
+                                    res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
+                                }
+                            })
+                    } else {// Se ouver receitas verificar se há despesas
+                        Despesas.find()
+                            .exec((err, dbDespesas) => {
+                                if (!err) {
+                                    /* Verificar se tem informações de despesas no banco */
+                                    if (dbDespesas == '') {// se acaso não ouver informações de despesas, enviar apenas dados de receita
+                                        /* criar codigo aqui *** */
+                                        const datasVerificadas = checkPorData(dbReceitas)
+                                        if (datasVerificadas == '') {
+                                            res.status(422).json({ msg: `Não há informações na data solicitada!` })
+                                        } else {
+                                            /* Filtrar os dados para somar gastos total de despesas e por categoria */
+                                            // const datasVerificadasReceitas = checkPorData(dbReceitas)
+                                            const totGastosMes = checkPorValores(dbDespesas, datasVerificadas);
+                                            res.status(200).json(totGastosMes)
+                                        }
+                                    } else {// Se ouver dados filtrar total de despesas, total de receitas, saldo final e total gasto no mês por categoria
+                                        const datasVerificadas = checkPorData(dbDespesas)
+                                        const datasVerificadasReceitas = checkPorData(dbReceitas)
+                                        if ((datasVerificadas == '') && (datasVerificadasReceitas == '')) {
+                                            res.status(422).json({ msg: `Não há informações na data solicitada!` })
+                                        } else {
+                                            /* Filtrar os dados para somar gastos total de despesas e por categoria */
+                                            const totGastosMes = checkPorValores(datasVerificadas, datasVerificadasReceitas);
+                                            res.status(200).json(totGastosMes)
+                                        }
+                                    }
+                                } else {// se ouver erro na pesquisa de banco de dados
+                                    res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
+                                }
+                            })
+                    }
+                } else {// se ouver erro na pesquisa de banco de dados 
+                    res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
+                }
+            })
+        function checkPorData(dataBase) {
+            /* VAriaveis para controlar data e receber os objs do banco de dados */
+            let result = [];
+            let data;
+            /* Usando dois for para que possa verificar toda a data do mês */
+            for (let a = 0; a <= 3; a++) {
+                for (let b = 0; b <= 9; b++) {
+                    data = `${ano}-${mes}-${a}${b}`
+                    /* Usando forEach para percorrer todo obj do dbDespesas/dbReceitas */
+                    dataBase.forEach((obj) => {
+                        if (data === obj.data) {
+                            result.push(obj)
+                        }
+                    })
+                }
             }
+            return result;
+        }
+        function checkPorValores(dbDespesas, dbReceitas) {
+            /* VAriaveis de controle */
+            let totGastosMesDespesas = 0;
+            let totGastosMesReceitas = 0;
+            let totGastosCategoria = 0;
+            let retornCat = [];
+            let catInfos = ['Alimentação', 'Saúde', 'Moradia', 'Transporte', 'Educação', 'Lazer', 'Imprevistos', 'Outros'];
+
+            /* ForEach para somar os valores das Despesas e Receitas */
+            dbReceitas.forEach((receita) => {
+                totGastosMesReceitas += receita.valor;
+            })
+            dbDespesas.forEach((depesa) => {
+                totGastosMesDespesas += depesa.valor;
+            })
+
+            retornCat.push({ [`Valor total das receitas no mês`]: totGastosMesReceitas })
+            retornCat.push({ [`Valor total das despesas no mês`]: totGastosMesDespesas })
+            retornCat.push({ [`Saldo final no mês`]: (totGastosMesReceitas - totGastosMesDespesas) })
+            /* For para verificar as categorias e somar os valores das idênticas */
+            for (let i in catInfos) {
+                /* Usando o forEach */
+                dbDespesas.forEach((despesas) => {
+                    if (despesas.categoria === catInfos[i]) {
+                        totGastosCategoria += despesas.valor
+                    }
+                })
+                if (totGastosCategoria !== 0) {// se o totGastosCategoria estiver com valores será puxado pelo retornCat.push.
+                    retornCat.push({ [catInfos[i]]: totGastosCategoria });
+                    totGastosCategoria = 0;
+                }
+            }
+            return retornCat
+        }
     }
 }
 
