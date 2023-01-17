@@ -1,6 +1,6 @@
 import usuarios from "../model/Usuario.js";
 import bcrypt from 'bcrypt';
-import Jwt  from "jsonwebtoken";
+import Jwt from "jsonwebtoken";
 
 class usuariosController {
     static cadastrarUsuario = (req, res) => {
@@ -41,11 +41,41 @@ class usuariosController {
                         res.status(422).json({ msg: `já existe em nosso banco de dado o cadastro com este email!, utilize outro email! ou se já possui cadastro entre com seu login` })
                     }
                 } else {
-                    res.status(500).json({msg: `Erro ao cadastrar tente novamente mais tarde!`})
+                    res.status(500).json({ msg: `Erro ao cadastrar tente novamente mais tarde!` })
                 }
             })
         }
-    }    
+    }
+    static logarUsuarioToken = (req, res) => {
+        /* Variaveis para armazenar o corpo da requisição */
+        const { email, senha } = req.body;
+        /* Verificando se há dados preenchidos */
+        if (!email) {
+            res.status(422).json({ msg: `Por favor preencha o campo email!` })
+        } else if (!senha) {
+            res.status(422).json({ msg: `Por favor insira sua senha!` })
+        } else {// verificar a existência de email no banco de dados
+            usuarios.findOne({ 'email': email }, (err, dbEmail) => {
+                if (!err) {
+                    if (dbEmail) {// se ouver dados verificar a senha
+                        let validacaoSenha = bcrypt.compareSync(senha, dbEmail.senha)
+                        if (validacaoSenha) {// se a senha for válida enviar token
+                            let secret = process.env.SECRET // usando o Secret do arquvido env
+                            let token = Jwt.sign({ id: dbEmail._id, }, secret)// criando um token com jwt
+                            res.status(200).json({msg: `Autenticação realizada com sucesso`,token})
+                        } else {
+                            res.status(422).json({ msg: `Senhas não conferem, por favor preencha uma senha válida` })
+                        }
+                    } else {
+                        res.status(422).json({ msg: `Por favor preencha um email válida ou cadastre-se!` })
+                    }
+                } else {
+                    res.status(500).json({ msg: `Desculpe, não foi possível continuar com sua solicitação, tente novamente mais tarde! ` })
+                }
+            })
+        }
+    }
+
 }
 
 export default usuariosController;
