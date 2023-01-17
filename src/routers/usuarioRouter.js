@@ -1,10 +1,11 @@
 import express from 'express';
-import usuario from '../controllers/usuarioController.js';
+import usuarioController from '../controllers/usuarioController.js';
 
 const router = express.Router();
 
 router
-    .post('/usuario', usuario.cadastrarUsuario)
-    .post('/usuario/login/token',usuario.logarUsuarioToken)
+    .post('/usuario', usuarioController.cadastrarUsuario)
+    .post('/usuario/login/token',usuarioController.logarUsuarioToken)
+    .get('/usuario/:id', usuarioController.acessarUsuarioPorId)
 
 export default router;

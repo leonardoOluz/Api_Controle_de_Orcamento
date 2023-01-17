@@ -75,6 +75,40 @@ class usuariosController {
             })
         }
     }
+    static acessarUsuarioPorId = (req, res) => {
+        /* Criando variaveis do corpo da requisição */
+        const id = req.params.id
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
+
+        /* Procurando o usuario por id */
+        usuarios.findById(id)
+        .select('nome email')// usando o select para devolver apenas nome e email do usuario
+        .exec((erro, dbId) => {
+            if (!erro) {
+                if (dbId) {
+                    if (token) {// verificando o token enviado
+                        Jwt.verify(token, secret, (err)=>{
+                            if (!err) {
+                                res.status(200).json(dbId)
+                            } else {
+                                res.status(422).json({msg: `Erro, token inexistente!`})
+                            }
+                        })
+                    } else {
+                        res.status(422).json({msg: `não tem token`})
+                    }
+                }else {
+                    res.status(422).json({msg: `não achamos o id`})
+                }
+                
+            } else {
+                res.status(422).json({msg: `erro para verificar o id`})
+            }
+        })
+
+    }
 
 }
 
