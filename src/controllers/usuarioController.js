@@ -100,9 +100,8 @@ class usuariosController {
                             res.status(422).json({ msg: `não tem token` })
                         }
                     } else {
-                        res.status(422).json({ msg: `não achamos o id` })
+                        res.status(422).json({ msg: `Usuário inexistente!` })
                     }
-
                 } else {
                     res.status(422).json({ msg: `erro para verificar o id` })
                 }
@@ -168,7 +167,36 @@ class usuariosController {
 
 
     }
-
+    static deletarUsuario = (req, res) => {
+        /* Variaveis do corpo da requisição */
+        const id = req.params.id;
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        const secret = process.env.SECRET;
+        
+        /*  Verificando se há token */
+        if (token) {
+            Jwt.verify(token, secret, (err) => {
+                if (!err) {                 
+                    usuarios.findByIdAndDelete(id,(err, dbDelete) => {
+                        if (!err) {
+                            if (dbDelete) {
+                                res.status(200).json({msg: `Usuário deletado com sucesso!`})    
+                            } else {
+                                res.status(422).json({msg: `Usuário inexistente`})
+                            }                            
+                        } else {
+                            res.status(422).json({msg: `Id não identificado`})
+                        }
+                    })
+                } else {
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+                }
+            })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
+    }
 }
 
 export default usuariosController;
