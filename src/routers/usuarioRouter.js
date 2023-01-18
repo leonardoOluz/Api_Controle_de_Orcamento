@@ -7,5 +7,6 @@ router
     .post('/usuario', usuarioController.cadastrarUsuario)
     .post('/usuario/login/token',usuarioController.logarUsuarioToken)
     .get('/usuario/:id', usuarioController.acessarUsuarioPorId)
+    .put('/usuario/:id', usuarioController.atualizarUsuarioPorId)
 
 export default router;

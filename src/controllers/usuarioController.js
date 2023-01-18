@@ -62,7 +62,7 @@ class usuariosController {
                         if (validacaoSenha) {// se a senha for válida enviar token
                             let secret = process.env.SECRET // usando o Secret do arquvido env
                             let token = Jwt.sign({ id: dbEmail._id, }, secret)// criando um token com jwt
-                            res.status(200).json({msg: `Autenticação realizada com sucesso`,token})
+                            res.status(200).json({ msg: `Autenticação realizada com sucesso`, token })
                         } else {
                             res.status(422).json({ msg: `Senhas não conferem, por favor preencha uma senha válida` })
                         }
@@ -84,29 +84,88 @@ class usuariosController {
 
         /* Procurando o usuario por id */
         usuarios.findById(id)
-        .select('nome email')// usando o select para devolver apenas nome e email do usuario
-        .exec((erro, dbId) => {
-            if (!erro) {
-                if (dbId) {
-                    if (token) {// verificando o token enviado
-                        Jwt.verify(token, secret, (err)=>{
-                            if (!err) {
-                                res.status(200).json(dbId)
-                            } else {
-                                res.status(422).json({msg: `Erro, token inexistente!`})
-                            }
-                        })
+            .select('nome email')// usando o select para devolver apenas nome e email do usuario
+            .exec((erro, dbId) => {
+                if (!erro) {
+                    if (dbId) {
+                        if (token) {// verificando o token enviado
+                            Jwt.verify(token, secret, (err) => {
+                                if (!err) {
+                                    res.status(200).json(dbId)
+                                } else {
+                                    res.status(422).json({ msg: `Erro, token inexistente!` })
+                                }
+                            })
+                        } else {
+                            res.status(422).json({ msg: `não tem token` })
+                        }
                     } else {
-                        res.status(422).json({msg: `não tem token`})
+                        res.status(422).json({ msg: `não achamos o id` })
                     }
-                }else {
-                    res.status(422).json({msg: `não achamos o id`})
+
+                } else {
+                    res.status(422).json({ msg: `erro para verificar o id` })
                 }
-                
-            } else {
-                res.status(422).json({msg: `erro para verificar o id`})
-            }
-        })
+            })
+
+    }
+    static atualizarUsuarioPorId = (req, res) => {
+        /* Criando variavies para armazenar corpo da requisição e token do cabeçario */
+        const id = req.params.id;
+        const { nome, email, senha } = req.body;
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET;
+        /* verificando se há token */
+        if (token) {
+            /* Verificar token válido */
+            Jwt.verify(token, secret, (err) => {
+                if (err) {// se o token estiver errado enviar mensagem de erro!
+                    res.status(422).json({ msg: `Você não tem autorização para acessar o sistema` })
+                } else {// se o token for válido verificar campos preenchido
+                    if (!nome) {// verificar campo nome
+                        res.status(422).json({ msg: `O campo nome é obrigatório!` })
+                    } else if (!email) {// verificar campo email
+                        res.status(422).json({ msg: `O campo email é obrigatório!` })
+                    } else {
+                        if (!senha) {// se campo senha não for preenchido atualizar somente nome e email
+                            usuarios.findByIdAndUpdate(id, { $set: { nome, email } }, (err, dbUpdate) => {
+                                if (!err) {
+                                    if (dbUpdate) {
+                                        res.status(201).json({ msg: `Usuario atualizado com sucesso!` })
+                                    } else {
+                                        res.status(422).json({ msg: `Não foi possível atualizar, usuário inexistênte` })
+                                    }
+                                } else {
+                                    res.status(500).json({ msg: `Id não identificado` })
+                                }
+                            })
+                        } else {// senão atualizar nome email e senha convertendo em hash
+                            /* Variaveis para armazenar o salt e novo hash */
+                            const salt = bcrypt.genSaltSync(10);
+                            const senhaHash = bcrypt.hashSync(senha, salt)
+                            /*  Buscar usuario do banco por id e atualizar dados */
+                            usuarios.findByIdAndUpdate(id, { $set: { nome, email, senha: senhaHash } }, (err, dbUpdate) => {
+                                if (!err) {
+                                    if (dbUpdate) {
+                                        res.status(201).json({ msg: `Usuario atualizado com sucesso!` })
+                                    } else {
+                                        res.status(422).json({ msg: `Não foi possível atualizar, usuário inexistênte` })
+                                    }
+                                } else {
+                                    res.status(500).json({ msg: `Id não identificado` })
+                                }
+                            })
+                        }
+                    }
+                }
+            })
+        } else {
+            res.status(422).json({ msg: `Você não tem autorização para acessar o sistema!` })
+            /* não atualizar */
+        }
+
+
 
     }
 
