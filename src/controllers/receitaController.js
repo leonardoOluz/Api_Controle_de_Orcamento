@@ -89,29 +89,35 @@ class receitasControllers {
             Receitas.find({ 'descricao': descricao })
                 .exec((erro, dbReceitas) => {
                     if (!erro) {
-                        res.status(200).json(dbReceitas)
+                        if (dbReceitas == '') {
+                            res.status(200).json({msg: `Não existe receitas para a descrição informada!`})    
+                        } else {
+                            res.status(200).json(dbReceitas)                            
+                        }                        
                     } else {
                         res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
                     }
                 })
-        } else { // se não pesquisa todas receitas e envia
+        } else { // se não há descrição pesquisar todas receitas e enviar
             Receitas.find()
                 .exec((erro, dbReceitas) => {
                     if (!erro) {
-                        res.status(200).json(dbReceitas)
+                        if (dbReceitas == '') {
+                            res.status(200).json({msg: `Não existe receitas!`})    
+                        } else {
+                            res.status(200).json(dbReceitas)                            
+                        }                        
                     } else {
                         res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
                     }
                 })
         }
 
-
     }
     static detalhesReceitaId = (req, res) => {
         const id = req.params.id;
         Receitas.findById(id, (err, dbReceita) => {
             if (!dbReceita) {
-                console.log(id)
                 res.status(422).json({ msg: `Não foi possível encontrar, verifique o Id informado!.` })
             } else if (err) {
                 res.status(500).json({ msg: `Erro no servidor tente novamente mais tarde!.`, erro: `${err.message}` })
