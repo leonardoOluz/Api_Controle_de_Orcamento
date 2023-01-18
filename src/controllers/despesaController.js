@@ -136,11 +136,14 @@ class despesasControllers {
     }
     static listarTodasDespesas = (req, res) => {
         const descricao = req.query.descricao
-
         if (descricao) {
             Despesas.find({ 'descricao': descricao }, (err, dbDescricao) => {
                 if (!err) {
-                    res.status(200).json(dbDescricao)
+                    if (dbDescricao == '') {
+                        res.status(200).json({msg: `Não existe despesas para a descrição informada!`})    
+                    } else {
+                        res.status(200).json(dbDescricao)                            
+                    }
                 } else {
                     res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
                 }
@@ -149,15 +152,16 @@ class despesasControllers {
         } else {
             Despesas.find((err, dbDescricao) => {
                 if (!err) {
-                    res.status(200).json(dbDescricao)
+                    if (dbDescricao == '') {
+                        res.status(200).json({msg: `Não existe despesas!`})    
+                    } else {
+                        res.status(200).json(dbDescricao)                            
+                    }
                 } else {
                     res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
                 }
             })
         }
-
-
-
     }
     static detalharDespesaPorId = (req, res) => {
         /* Criando variavel id para armazenar os paramentros da requisição */
