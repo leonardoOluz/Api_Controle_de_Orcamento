@@ -26,7 +26,7 @@ class receitasControllers {
                         return res.status(422).json({ msg: `Preencha o campo Valor Campo obrigátorio` })
                     } else if (!data || (data.length < 10)) {
                         return res.status(422).json({ msg: `Por favor preencha a data no formato YYYY-MM-DD` })
-                    } else {            
+                    } else {
                         Receitas.find({ 'descricao': descricao })
                             .exec((error, dbDescricao) => {
                                 if (!error) {
@@ -81,7 +81,7 @@ class receitasControllers {
             })
         } else {
             res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
-        }      
+        }
         function checkData(data, dbDat) {
             let control = [];
             dbDat.forEach((obj) => {
@@ -96,33 +96,48 @@ class receitasControllers {
     }
     static listarTodasReceitas = (req, res) => {
         const descricao = req.query.descricao
-        /* Se for passado as descrições entra no if para achar somente as descrições passada*/
-        if (descricao) {
-            Receitas.find({ 'descricao': descricao })
-                .exec((erro, dbReceitas) => {
-                    if (!erro) {
-                        if (dbReceitas == '') {
-                            res.status(200).json({ msg: `Não existe receitas para a descrição informada!` })
-                        } else {
-                            res.status(200).json(dbReceitas)
-                        }
-                    } else {
-                        res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
+        /* Verificando token de autenticação */
+        if (token) {
+            /*  Validando token */
+            Jwt.verify(token, secret, (err) => {
+                if (!err) {
+                    /* Se for passado as descrições entra no if para achar somente as descrições passada*/
+                    if (descricao) {
+                        Receitas.find({ 'descricao': descricao })
+                            .exec((erro, dbReceitas) => {
+                                if (!erro) {
+                                    if (dbReceitas == '') {
+                                        res.status(200).json({ msg: `Não existe receitas para a descrição informada!` })
+                                    } else {
+                                        res.status(200).json(dbReceitas)
+                                    }
+                                } else {
+                                    res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
+                                }
+                            })
+                    } else { // se não há descrição pesquisar todas receitas e enviar
+                        Receitas.find()
+                            .exec((erro, dbReceitas) => {
+                                if (!erro) {
+                                    if (dbReceitas == '') {
+                                        res.status(200).json({ msg: `Não existe receitas!` })
+                                    } else {
+                                        res.status(200).json(dbReceitas)
+                                    }
+                                } else {
+                                    res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
+                                }
+                            })
                     }
-                })
-        } else { // se não há descrição pesquisar todas receitas e enviar
-            Receitas.find()
-                .exec((erro, dbReceitas) => {
-                    if (!erro) {
-                        if (dbReceitas == '') {
-                            res.status(200).json({ msg: `Não existe receitas!` })
-                        } else {
-                            res.status(200).json(dbReceitas)
-                        }
-                    } else {
-                        res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
-                    }
-                })
+                } else {
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+                }
+            })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
         }
 
     }
