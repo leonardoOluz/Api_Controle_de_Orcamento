@@ -151,167 +151,246 @@ class despesasControllers {
         }
     }
     static listarTodasDespesas = (req, res) => {
-        const descricao = req.query.descricao
-        if (descricao) {
-            Despesas.find({ 'descricao': descricao }, (err, dbDescricao) => {
+        const descricao = req.query.descricao;
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        const secret = process.env.SECRET;
+        /* Verificar token */
+        if (token) {
+            /* Validar token */
+            jwt.verify(token, secret, (err) => {
                 if (!err) {
-                    if (dbDescricao == '') {
-                        res.status(200).json({ msg: `Não existe despesas para a descrição informada!` })
-                    } else {
-                        res.status(200).json(dbDescricao)
-                    }
-                } else {
-                    res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
-                }
-            })
+                    if (descricao) {
+                        Despesas.find({ 'descricao': descricao }, (err, dbDescricao) => {
+                            if (!err) {
+                                if (dbDescricao == '') {
+                                    res.status(200).json({ msg: `Não existe despesas para a descrição informada!` })
+                                } else {
+                                    res.status(200).json(dbDescricao)
+                                }
+                            } else {
+                                res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
+                            }
+                        })
 
-        } else {
-            Despesas.find((err, dbDescricao) => {
-                if (!err) {
-                    if (dbDescricao == '') {
-                        res.status(200).json({ msg: `Não existe despesas!` })
                     } else {
-                        res.status(200).json(dbDescricao)
+                        Despesas.find((err, dbDescricao) => {
+                            if (!err) {
+                                if (dbDescricao == '') {
+                                    res.status(200).json({ msg: `Não existe despesas!` })
+                                } else {
+                                    res.status(200).json(dbDescricao)
+                                }
+                            } else {
+                                res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
+                            }
+                        })
                     }
+
+
+
                 } else {
-                    res.status(500).json({ msg: `Não foi possível listar as despesas tente novamente mais tarde!` })
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                 }
             })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
         }
     }
     static detalharDespesaPorId = (req, res) => {
         /* Criando variavel id para armazenar os paramentros da requisição */
         const id = req.params.id;
-        /*  Verificando no banco a existência do id */
-        Despesas.findById(id, (err, dbDespesa) => {
-            if (dbDespesa) {
-                /*  Se acaso existir o mesmo é enviado em formado json*/
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        const secret = process.env.SECRET;
+        /* Verificar token */
+        if (token) {
+            /* validar token */
+            jwt.verify(token, secret, (err) => {
                 if (!err) {
-                    res.status(200).json(dbDespesa);
+                    /*  Verificando no banco a existência do id */
+                    Despesas.findById(id, (err, dbDespesa) => {
+                        if (!err) {
+                            if (dbDespesa) {
+                                /*  Se acaso existir o mesmo é enviado em formado json*/
+                                res.status(200).json(dbDespesa);
+                            } else { // se não ouver os dados é enviado uma msg informando a inexistência do dado
+                                res.status(422).json({ msg: `Não foi possível identificar o id: ${id}, O mesmo pode não existir no banco de dados! ` })
+                            }
+                        } else {
+                            res.status(422).json({ mensagem: `Erro, verifique o Id` })
+                        }
+                    })
                 } else {
-                    res.status(500).json({ msg: `${err.message} Erro ao requisitar o servidor, tente novamente mais tarde!` })
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                 }
-            } else { // se não ouver os dados é enviado uma msg informando a inexistência do dado
-                res.status(422).json({ msg: `Não foi possível identificar o id: ${id}, O mesmo pode não existir no banco de dados! ` })
-            }
-        })
-
+            })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
     }
+    /* Refatorar o codigo e corrigir Bugs em atualizarDespesaPorId */
     static atualizarDespesaPorId = (req, res) => {
         /* Criando variaveis para os parâmentros */
         const { descricao, valor, data } = req.body;
         const id = req.params.id;
-        if (!descricao) {
-            res.status(422).json({ msg: `Descrição é obrigatório!` });
-        } else if (!valor) {
-            res.status(422).json({ msg: `Valor é obrigatório!` });
-        } else if (!data || (data.length < 10)) {
-            res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` });
-        } else {
-            /* Verificar a existencia do id no banco de dados */
-            Despesas.findById(id, (err, dbDespesa) => {
-                /* verificando erro de servidor caso não, entra no if*/
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
+
+        if (token) {
+            /* Validar token */
+            jwt.verify(token, secret, (err) => {
                 if (!err) {
-                    /* Criando variaveis de controle de data */
-                    const dbData = Number(dbDespesa.data.slice(5, 7))
-                    const dataNew = Number(data.slice(5, 7))
-                    /* Verificando se retorna dados do banco */
-                    if (dbDespesa) {
-                        /* Verificar se as descrições são a mesma */
-                        if (dbDespesa.descricao !== descricao) {
-                            /* Se a descrição forem diferentes verificar outros descrições no banco */
-                            Despesas.findOne({ 'descricao': descricao }, (err, dbPorDescricao) => {
-                                if (!err) {
-                                    /* Se ouver descrição informar há existência da descrição e solicitar que atualize a descrição ou crie outra*/
-                                    if (dbPorDescricao) {
-                                        res.status(200).json({ msg: `Não é possível atualizar, descrição existente! Atualize a descrição informada por id ou crie outra despesa.` })
-                                    } else {
-                                        /* Se não existir outra descrição informada, verificar data se igual ou superior a atual*/
-                                        if (dataNew >= dbData) {
-                                            Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
-                                                if (!err) {
-                                                    res.status(201).json({ msg: `Atualizado com descrição nova` })
+                    if (!descricao) {
+                        res.status(422).json({ msg: `Descrição é obrigatório!` });
+                    } else if (!valor) {
+                        res.status(422).json({ msg: `Valor é obrigatório!` });
+                    } else if (!data || (data.length < 10)) {
+                        res.status(422).json({ msg: `Por favor preencha a data no formato YYYY-MM-DD` });
+                    } else {
+                        /* Verificar a existencia do id no banco de dados */
+                        Despesas.findById(id, (err, dbDespesa) => {
+                            /* verificando erro de servidor se a caso não, entra no if*/
+                            if (!err) {
+                                /* Verificando se retorna dados do banco */
+                                if (dbDespesa) {
+                                    /* Criando variaveis de controle de data */
+                                    const dbData = Number(dbDespesa.data.slice(5, 7))
+                                    const dataNew = Number(data.slice(5, 7))
+                                    /* Verificar se as descrições são a mesma */
+                                    if (dbDespesa.descricao !== descricao) {
+                                        /* Se a descrição forem diferentes verificar outros descrições no banco */
+
+                                        /* OBS: ****** Verificar o codigo e atualizar  ******* */
+                                        Despesas.findOne({ 'descricao': descricao }, (err, dbPorDescricao) => {
+                                            if (!err) {
+                                                /* Se ouver descrição informar há existência da descrição e solicitar que atualize a descrição ou crie outra*/
+                                                if (dbPorDescricao) {
+                                                    res.status(200).json({ msg: `Não é possível atualizar, descrição existente! Atualize a descrição informada por id ou crie outra despesa.` })
                                                 } else {
-                                                    res.status(422).json({ msg: `Erro para atualizar, verifique o ID` })
+                                                    /* Se não existir outra descrição informada, verificar data se igual ou superior a atual*/
+                                                    if (dataNew >= dbData) {
+                                                        Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
+                                                            if (!err) {
+                                                                res.status(201).json({ msg: `Atualizado com descrição nova` })
+                                                            } else {
+                                                                res.status(422).json({ msg: `Erro para atualizar, verifique o ID` })
+                                                            }
+                                                        })
+                                                    } else { // se data for for da atual informar data invalida
+                                                        res.status(422).json({ msg: `data inferior a informada, coloque uma data válida` })
+                                                    }
+                                                }
+                                            } else {
+                                                res.status(500).json({ msg: `Não foi possivel pesquisar pela descrição` })
+                                            }
+                                        })
+
+                                    } else {
+                                        /* Se as descrições forem iguais, verificar as datas */
+
+                                        if (dataNew >= dbData) {
+                                            /* Se a data for igual ou maior  */
+                                            Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
+                                                /* Atualizar com mesma descrição */
+                                                if (!err) {
+                                                    res.status(201).json({ msg: `Atualizado com a mesma descrição` })
+                                                } else {
+                                                    res.status(500).json({ msg: `Erro para atualizar, verifique o ID` })
                                                 }
                                             })
-                                        } else { // se data for for da atual informar data invalida
+                                        } else {
+                                            /* Se for abaixo do informado enviar msg de data inválida */
                                             res.status(422).json({ msg: `data inferior a informada, coloque uma data válida` })
                                         }
                                     }
                                 } else {
-                                    res.status(500).json({ msg: `Não foi possivel pesquisar pela descrição` })
+                                    /* Não ouver dados no banco, impossível atualizar */
+                                    res.status(422).json({ msg: `Não há dados no banco!` })
                                 }
-                            })
 
-                        } else {
-                            /* Se as descrições forem iguais, verificar as datas */
-
-                            if (dataNew >= dbData) {
-                                /* Se a data for igual ou maior  */
-                                Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
-                                    /* Atualizar com mesma descrição */
-                                    if (!err) {
-                                        res.status(201).json({ msg: `Atualizado com a mesma descrição` })
-                                    } else {
-                                        res.status(500).json({ msg: `Erro para atualizar, verifique o ID` })
-                                    }
-                                })
                             } else {
-                                /* Se for abaixo do informado enviar msg de data inválida */
-                                res.status(422).json({ msg: `data inferior a informada, coloque uma data válida` })
+                                /* Caso tiver erro manda msg de erro */
+                                res.status(422).json({ msg: `Erro na requisição verifique o id informado!` })
                             }
-                        }
-                    } else {
-                        /* Não ouver dados no banco, impossível atualizar */
-                        res.status(422).json({ msg: `Não há dados no banco!` })
+                        })
                     }
-
                 } else {
-                    /* Caso tiver erro manda msg de erro */
-                    res.status(422).json({ msg: `Erro na requisição verifique o id informado!` })
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                 }
             })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
         }
     }
     static deletarDespesaPorId = (req, res) => {
         /* criando variavel para armazenar o Id da requisição */
         const id = req.params.id;
-        /* Procurando o ID e deletando */
-        Despesas.findByIdAndDelete(id, (err, dbDespesaDelete) => {
-            /* Se não tiver erro na digitanção do ID, será verificado a existência do ID*/
-            if (!err) {
-                /* Se acaso existir o ID uma mensagem de deletado será enviado */
-                if (dbDespesaDelete) {
-                    res.status(201).json({ msg: `Despesa deletada com sucesso!.` })
-                } else { // se não existir o ID uma mensagem de ID inexistente é enviada
-                    res.status(422).json({ msg: `O ID solicitado não existe!` })
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1];
+        const secret = process.env.SECRET;
+        /* Verificando token */
+        if (token) {
+            /* Validar token */
+            jwt.verify(token, secret, (err) => {
+                if (!err) {
+                    /* Procurando o ID e deletando */
+                    Despesas.findByIdAndDelete(id, (err, dbDespesaDelete) => {
+                        /* Se não tiver erro na digitanção do ID, será verificado a existência do ID*/
+                        if (!err) {
+                            /* Se acaso existir o ID uma mensagem de deletado será enviado */
+                            if (dbDespesaDelete) {
+                                res.status(201).json({ msg: `Despesa deletada com sucesso!.` })
+                            } else { // se não existir o ID uma mensagem de ID inexistente é enviada
+                                res.status(422).json({ msg: `O ID solicitado não existe!` })
+                            }
+                        } else { // se o ID estiver digitado incorreto, uma mensagem de ID inválido será enviada.
+                            res.status(422).json({ msg: `Erro, digite um ID válido!` })
+                        }
+                    })
+                } else {
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                 }
-            } else { // se o ID estiver digitado incorreto, uma mensagem de ID inválido será enviada.
-                res.status(422).json({ msg: `Erro, digite um ID válido!` })
-            }
-        })
+            })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
     }
     static listarDespesasPorMesAno = (req, res) => {
         /* variaveis da requisição */
-        const { ano, mes } = req.query;
-        /* .find para puxar o banco de dados */
-        Despesas.find()
-            .exec((err, dbAnoMes) => {
+        const { ano, mes } = req.params;
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET;
+        /* Verificar token */
+        if (token) {
+            /* Validar token */
+            jwt.verify(token, secret, (err) => {
                 if (!err) {
-                    /* Verificar as datas do banco de dado e retornar a requisitadas */
-                    const checkDbAnoMes = checkingDbAnoMes(dbAnoMes);
-                    /* Se não ouver dados no retorno da função checkingDbAnoMes enviar msg de não encontrado*/
-                    if (checkDbAnoMes == '') {
-                        res.status(422).json({ msg: `Não há despesas no mês informado => ${ano}-${mes}` })
-                    } else {// se ouver dados enviar.
-                        res.status(200).json(checkDbAnoMes)
-                    }
+                    /* .find para puxar o banco de dados */
+                    Despesas.find()
+                        .exec((err, dbAnoMes) => {
+                            if (!err) {
+                                /* Verificar as datas do banco de dado e retornar a requisitadas */
+                                const checkDbAnoMes = checkingDbAnoMes(dbAnoMes);
+                                /* Se não ouver dados no retorno da função checkingDbAnoMes enviar msg de não encontrado*/
+                                if (checkDbAnoMes == '') {
+                                    res.status(422).json({ msg: `Não há despesas no mês informado => ${ano}-${mes}` })
+                                } else {// se ouver dados enviar.
+                                    res.status(200).json(checkDbAnoMes)
+                                }
+                            } else {
+                                res.status(422).json({ msg: `Erro tente mais tarde!` })
+                            }
+                        })
                 } else {
-                    res.status(422).json({ msg: `Erro tente mais tarde!` })
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                 }
             })
-
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
         function checkingDbAnoMes(dbAnoMes) {
             let data
             let checking = [];
@@ -329,7 +408,6 @@ class despesasControllers {
             })
             return checking;
         }
-
     }
 }
 

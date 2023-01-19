@@ -169,6 +169,7 @@ class receitasControllers {
             res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
         }
     }
+    /* Refatorar o codigo e corrigir Bugs em atualizarDadosReceitaId */
     static atualizarDadosReceitaId = (req, res) => {
         // criando variaveis para armazenar o corpo da requisição
         const { descricao, valor, data } = req.body
