@@ -229,7 +229,6 @@ class despesasControllers {
             res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
         }
     }
-    /* Refatorar o codigo e corrigir Bugs em atualizarDespesaPorId */
     static atualizarDespesaPorId = (req, res) => {
         /* Criando variaveis para os parâmentros */
         const { descricao, valor, data } = req.body;
@@ -261,13 +260,27 @@ class despesasControllers {
                                     /* Verificar se as descrições são a mesma */
                                     if (dbDespesa.descricao !== descricao) {
                                         /* Se a descrição forem diferentes verificar outros descrições no banco */
-
-                                        /* OBS: ****** Verificar o codigo e atualizar  ******* */
-                                        Despesas.findOne({ 'descricao': descricao }, (err, dbPorDescricao) => {
+                                        Despesas.find({ 'descricao': descricao }, (err, dbPorDescricao) => {
                                             if (!err) {
                                                 /* Se ouver descrição informar há existência da descrição e solicitar que atualize a descrição ou crie outra*/
                                                 if (dbPorDescricao) {
-                                                    res.status(200).json({ msg: `Não é possível atualizar, descrição existente! Atualize a descrição informada por id ou crie outra despesa.` })
+                                                    // verificar se as datas são identicas
+                                                    const dataChecada = checkData(dbPorDescricao)
+                                                    if (dataChecada.includes(Number(data.slice(5, 7)))) {
+                                                        res.status(422).json({mensagem: `Não é possível atualizar com essa data devido a existência de descrição com mesma data!`})
+                                                    } else {// senão ouver data e a mesma for superior a atual atualizar
+                                                        if (dataNew >= dbData) {
+                                                            Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
+                                                                if (!err) {
+                                                                    res.status(201).json({ msg: `Atualizado com descrição nova` })
+                                                                } else {
+                                                                    res.status(422).json({ msg: `Erro para atualizar, verifique o ID` })
+                                                                }
+                                                            })
+                                                        } else { // se data for for da atual informar data invalida
+                                                            res.status(422).json({ msg: `data inferior a informada, coloque uma data válida` })
+                                                        }                                                        
+                                                    }                                                    
                                                 } else {
                                                     /* Se não existir outra descrição informada, verificar data se igual ou superior a atual*/
                                                     if (dataNew >= dbData) {
@@ -289,7 +302,6 @@ class despesasControllers {
 
                                     } else {
                                         /* Se as descrições forem iguais, verificar as datas */
-
                                         if (dataNew >= dbData) {
                                             /* Se a data for igual ou maior  */
                                             Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
@@ -323,6 +335,19 @@ class despesasControllers {
         } else {
             res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
         }
+        /* função verificar as datas */
+        function checkData(dbDat) {
+            let control = [];
+            dbDat.forEach((obj) => {
+
+                if (Number(data.slice(5, 7)) === Number(obj.data.slice(5, 7))) {
+                    control.push(Number(obj.data.slice(5, 7)))
+                }
+
+            })
+            return control;
+        }
+
     }
     static deletarDespesaPorId = (req, res) => {
         /* criando variavel para armazenar o Id da requisição */
