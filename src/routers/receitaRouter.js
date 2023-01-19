@@ -8,7 +8,7 @@ router
   .get('/receitas/',receitaController.listarTodasReceitas)
   .get('/receitas/ano/mes',receitaController.listarReceitasPorMesAno)
   .get('/receitas/:id', receitaController.detalhesReceitaId)
-  .get('/resumo/ano/mes', receitaController.resumoDoMes)
+  .get('/resumo/ano/:anoNumber/mes/:mesNumber', receitaController.resumoDoMes)
   .put('/receitas/:id',receitaController.atualizarDadosReceitaId)
   .delete('/receitas/:id',receitaController.deletarReceitaPorId)
 

@@ -90,10 +90,10 @@ class receitasControllers {
                 .exec((erro, dbReceitas) => {
                     if (!erro) {
                         if (dbReceitas == '') {
-                            res.status(200).json({msg: `Não existe receitas para a descrição informada!`})    
+                            res.status(200).json({ msg: `Não existe receitas para a descrição informada!` })
                         } else {
-                            res.status(200).json(dbReceitas)                            
-                        }                        
+                            res.status(200).json(dbReceitas)
+                        }
                     } else {
                         res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
                     }
@@ -103,10 +103,10 @@ class receitasControllers {
                 .exec((erro, dbReceitas) => {
                     if (!erro) {
                         if (dbReceitas == '') {
-                            res.status(200).json({msg: `Não existe receitas!`})    
+                            res.status(200).json({ msg: `Não existe receitas!` })
                         } else {
-                            res.status(200).json(dbReceitas)                            
-                        }                        
+                            res.status(200).json(dbReceitas)
+                        }
                     } else {
                         res.status(500).json({ msg: `Erro ao conectar ao servidor!. tente novamente mais tarde.` })
                     }
@@ -293,7 +293,7 @@ class receitasControllers {
         }
     }
     static resumoDoMes = (req, res) => {
-        const { ano, mes } = req.query;
+        const { anoNumber, mesNumber } = req.params;
         /* Puxando informações do banco de dados! */
         Receitas.find()
             .exec((err, dbReceitas) => {
@@ -313,16 +313,9 @@ class receitasControllers {
                                             res.status(422).json({ msg: `Não há informações na data solicitada!` })
                                         } else {
                                             /* Filtrar os dados para somar gastos total de despesas e por categoria */
-                                            const datasVerificadas = checkPorData(dbDespesas)                                           
-                                            if (datasVerificadas == '') {
-                                                res.status(422).json({ msg: `Não há informações na data solicitada!` })
-                                            } else {
-                                                /* Filtrar os dados para somar gastos total de despesas e por categoria */
-                                                const totGastosMes = checkPorValores(datasVerificadas, dbReceitas);
-                                                res.status(200).json(totGastosMes)
-                                            }
+                                            const totGastosMes = checkPorValores(datasVerificadas, dbReceitas);
+                                            res.status(200).json(totGastosMes)                                            
                                         }
-                                        /* criar codigo para resumo de despesas aqui*** */
                                     }
                                 } else {// se ouver erro na pesquisa de banco de dados
                                     res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
@@ -340,7 +333,6 @@ class receitasControllers {
                                             res.status(422).json({ msg: `Não há informações na data solicitada!` })
                                         } else {
                                             /* Filtrar os dados para somar gastos total de despesas e por categoria */
-                                            // const datasVerificadasReceitas = checkPorData(dbReceitas)
                                             const totGastosMes = checkPorValores(dbDespesas, datasVerificadas);
                                             res.status(200).json(totGastosMes)
                                         }
@@ -371,7 +363,7 @@ class receitasControllers {
             /* Usando dois for para que possa verificar toda a data do mês */
             for (let a = 0; a <= 3; a++) {
                 for (let b = 0; b <= 9; b++) {
-                    data = `${ano}-${mes}-${a}${b}`
+                    data = `${anoNumber}-${mesNumber}-${a}${b}`
                     /* Usando forEach para percorrer todo obj do dbDespesas/dbReceitas */
                     dataBase.forEach((obj) => {
                         if (data === obj.data) {
@@ -414,8 +406,10 @@ class receitasControllers {
                     totGastosCategoria = 0;
                 }
             }
+
             return retornCat
         }
+
     }
 }
 
