@@ -1,10 +1,14 @@
 import Receitas from '../model/Receitas.js';
 import Despesas from '../model/Despesas.js';
+import Jwt from 'jsonwebtoken';
 
 class receitasControllers {
 
     static cadastrarReceitas = (req, res) => {
         const { descricao, valor, data } = req.body;
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
         const receitas = new Receitas(
             {
                 descricao,
@@ -12,62 +16,72 @@ class receitasControllers {
                 data
             }
         )
-        if (!descricao) {
-            return res.status(422).json({ msg: `Preencha o campo "Descrição" Campo obrigátorio` })
-        } else if (!valor) {
-            return res.status(422).json({ msg: `Preencha o campo "Valor" Campo obrigátorio` })
-        } else if (!data || (data.length < 10)) {
-            return res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` })
-        } else {
-
-            Receitas.find({ 'descricao': descricao })
-                .exec((error, dbDescricao) => {
-                    if (!error) {
-                        /* Verificar se retorna objetos com descrição idênticas */
-                        if (dbDescricao == '') {
-                            /* Se não ouver descrição verificar a data atual */
-                            const d = new Date();
-                            const dataNow = d.getMonth();
-                            /* Se a data for igual ou superior a informada salvar a nova receita */
-                            if (Number(data.slice(5, 7)) >= (dataNow + 1)) {
-                                receitas.save((err) => {
-                                    if (!err) {
-                                        res.status(201).json({ msg: `Receita cadastrada com sucesso!. Descrição nova` })
-                                    } else {
-                                        res.status(500).json({ message: `${err.message}` })
-                                    }
-                                })
-                            } else { // se a data for inferior avisar que a data é inválida!
-                                res.status(422).json({ msg: `Use uma data válida!` })
-                            }
-                        } else {
-                            /* Função para percorrer todos os objetos com a mesma data */
-                            let dataChecada = checkData(data, dbDescricao)
-                            const d = new Date();
-                            const dataNow = d.getMonth();
-                            /* Verificar se a data não é inferior que a atual! */
-                            if (Number(data.slice(5, 7)) >= (dataNow + 1)) {
-                                /*  Se ouver data repetida com mesma descrição enviar mensagem de descrição e data repetida */
-                                if (dataChecada.includes(Number(data.slice(5, 7)))) {
-                                    res.status(201).json({ msg: `Já existe uma descrição com a mesma data! Se desejar atualize a descrição com data informada!` })
-                                } else {// se não ouver data repetida com mesma descrição, criar nova receita
-                                    receitas.save((err) => {
-                                        if (!err) {
-                                            res.status(201).json({ msg: `Receita cadastrada com sucesso!. mesma descrição data diferente` })
-                                        } else {
-                                            res.status(500).json({ message: `${err.message}` })
+        /* Verificar autorização d token */
+        if (token) {
+            Jwt.verify(token, secret, (err) => {
+                if (!err) {
+                    if (!descricao) {
+                        return res.status(422).json({ msg: `Preencha o campo Descrição Campo obrigátorio` })
+                    } else if (!valor) {
+                        return res.status(422).json({ msg: `Preencha o campo Valor Campo obrigátorio` })
+                    } else if (!data || (data.length < 10)) {
+                        return res.status(422).json({ msg: `Por favor preencha a data no formato YYYY-MM-DD` })
+                    } else {            
+                        Receitas.find({ 'descricao': descricao })
+                            .exec((error, dbDescricao) => {
+                                if (!error) {
+                                    /* Verificar se retorna objetos com descrição idênticas */
+                                    if (dbDescricao == '') {
+                                        /* Se não ouver descrição verificar a data atual */
+                                        const d = new Date();
+                                        const dataNow = d.getMonth();
+                                        /* Se a data for igual ou superior a informada salvar a nova receita */
+                                        if (Number(data.slice(5, 7)) >= (dataNow + 1)) {
+                                            receitas.save((err) => {
+                                                if (!err) {
+                                                    res.status(201).json({ msg: `Receita cadastrada com sucesso!. Descrição nova` })
+                                                } else {
+                                                    res.status(500).json({ message: `${err.message}` })
+                                                }
+                                            })
+                                        } else { // se a data for inferior avisar que a data é inválida!
+                                            res.status(422).json({ msg: `Use uma data válida!` })
                                         }
-                                    })
+                                    } else {
+                                        /* Função para percorrer todos os objetos com a mesma data */
+                                        let dataChecada = checkData(data, dbDescricao)
+                                        const d = new Date();
+                                        const dataNow = d.getMonth();
+                                        /* Verificar se a data não é inferior que a atual! */
+                                        if (Number(data.slice(5, 7)) >= (dataNow + 1)) {
+                                            /*  Se ouver data repetida com mesma descrição enviar mensagem de descrição e data repetida */
+                                            if (dataChecada.includes(Number(data.slice(5, 7)))) {
+                                                res.status(201).json({ msg: `Já existe uma descrição com a mesma data! Se desejar atualize a descrição com data informada!` })
+                                            } else {// se não ouver data repetida com mesma descrição, criar nova receita
+                                                receitas.save((err) => {
+                                                    if (!err) {
+                                                        res.status(201).json({ msg: `Receita cadastrada com sucesso!. mesma descrição data diferente` })
+                                                    } else {
+                                                        res.status(500).json({ message: `${err.message}` })
+                                                    }
+                                                })
+                                            }
+                                        } else {
+                                            res.status(422).json({ msg: `Use uma data válida!` })
+                                        }
+                                    }
+                                } else {
+                                    res.status(500).json({ msg: `Erro ao criar receita, tente novamente mais tarde!` })
                                 }
-                            } else {
-                                res.status(422).json({ msg: `Use uma data válida!` })
-                            }
-                        }
-                    } else {
-                        res.status(500).json({ msg: `Erro ao criar receita, tente novamente mais tarde!` })
+                            })
                     }
-                })
-        }
+                } else {
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+                }
+            })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }      
         function checkData(data, dbDat) {
             let control = [];
             dbDat.forEach((obj) => {
@@ -77,9 +91,7 @@ class receitasControllers {
                 }
 
             })
-            console.log(control)
             return control;
-
         }
     }
     static listarTodasReceitas = (req, res) => {
@@ -314,7 +326,7 @@ class receitasControllers {
                                         } else {
                                             /* Filtrar os dados para somar gastos total de despesas e por categoria */
                                             const totGastosMes = checkPorValores(datasVerificadas, dbReceitas);
-                                            res.status(200).json(totGastosMes)                                            
+                                            res.status(200).json(totGastosMes)
                                         }
                                     }
                                 } else {// se ouver erro na pesquisa de banco de dados

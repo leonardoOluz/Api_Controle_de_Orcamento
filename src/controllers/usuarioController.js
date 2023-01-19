@@ -93,11 +93,11 @@ class usuariosController {
                                 if (!err) {
                                     res.status(200).json(dbId)
                                 } else {
-                                    res.status(422).json({ msg: `Erro, token inexistente!` })
+                                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                                 }
                             })
                         } else {
-                            res.status(422).json({ msg: `não tem token` })
+                            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                         }
                     } else {
                         res.status(422).json({ msg: `Usuário inexistente!` })
