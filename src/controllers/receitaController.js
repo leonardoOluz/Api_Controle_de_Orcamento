@@ -143,156 +143,221 @@ class receitasControllers {
     }
     static detalhesReceitaId = (req, res) => {
         const id = req.params.id;
-        Receitas.findById(id, (err, dbReceita) => {
-            if (!dbReceita) {
-                res.status(422).json({ msg: `Não foi possível encontrar, verifique o Id informado!.` })
-            } else if (err) {
-                res.status(500).json({ msg: `Erro no servidor tente novamente mais tarde!.`, erro: `${err.message}` })
-            } else {
-                return res.status(200).json(dbReceita)
-            }
-        })
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
+        /* verificando token */
+        if (token) {
+            /* Validando token */
+            Jwt.verify(token, secret, (err) => {
+                if (!err) {
+                    Receitas.findById(id, (err, dbReceita) => {
+                        if (!dbReceita) {
+                            res.status(422).json({ msg: `Não foi possível encontrar, verifique o Id informado!.` })
+                        } else if (err) {
+                            res.status(500).json({ msg: `Erro no servidor tente novamente mais tarde!.`, erro: `${err.message}` })
+                        } else {
+                            return res.status(200).json(dbReceita)
+                        }
+                    })
+                } else {
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+                }
+            })
+
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
     }
     static atualizarDadosReceitaId = (req, res) => {
         // criando variaveis para armazenar o corpo da requisição
         const { descricao, valor, data } = req.body
         const id = req.params.id;
-        // verificações para atualização
-        Receitas.findById(id, (err, dbReceitaId) => {
-            // verificando o corpo da requisição
-            if (!dbReceitaId) {
-                res.status(500).json({ msg: `Id inexistente!` });
-            } else if (err) {
-                res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
-            } else if (!descricao) {
-                res.status(422).json({ msg: `Descrição é obrigatório!` });
-            } else if (!valor) {
-                res.status(422).json({ msg: `Valor é obrigatório!` });
-            } else if (!data || (data.length < 10)) {
-                res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` });
-            } else {
-                // criando variaveis para data 
-                let dbData = Number(dbReceitaId.data.slice(5, 7));
-                let dataNew = Number(data.slice(5, 7));
-                // Verificando as datas, se a nova data é igual ou maior a do db.
-                if (dataNew >= dbData) {
-                    // verificar se a descrição é a mesma.
-                    if (dbReceitaId.descricao !== descricao) {
-                        // verificar se há outra descrição idêntica!.
-                        Receitas.findOne({ 'descricao': descricao })
-                            .exec((error, dbReceitaOne) => {
-                                if (!error) {
-                                    if (!dbReceitaOne) {
-                                        Receitas.findByIdAndUpdate(id, { $set: req.body })
-                                            .exec((err) => {
-                                                if (!err) {
-                                                    res.status(201).json({ msg: `atualizado por descricão diferente!` })
-                                                } else {
-                                                    res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
-                                                }
-                                            })
-                                    } else {
-                                        res.status(422).json({ msg: `Já existe uma descrição com esse nome, porfavor utilize outro!` })
-                                    }
-                                }
-                            })
-                    } else { // Se a descrição for a mesma, verificar se não há outra descrição.
-                        Receitas.findOne({ 'descricao': descricao })
-                            .exec((err, dbReceitaOne) => {
-                                let dbDataOne = Number(dbReceitaOne.data.slice(5, 7));
-                                if (!err) {
-                                    // Verificar se há outro objeto com mesma descrição
-                                    if (dbReceitaOne) {
-                                        // verificar se é o mesmo id
-                                        if (dbReceitaOne.id !== id) {
-                                            // se há outra descrição verificar a data
-                                            if (dataNew >= dbDataOne) {
-                                                // atualizar receita com mesma descrição e data diferente
-                                                Receitas.findByIdAndUpdate(id, { $set: req.body })
-                                                    .exec((err) => {
-                                                        if (!err) {
-                                                            res.status(201).json({ msg: `Atualizado com a mesma descrição!` })
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
+        /* Verificar token */
+        if (token) {
+            /* Válidar token */
+            Jwt.verify(token, secret, (err) => {
+                if (!err) {
+                    // verificações para atualização
+                    Receitas.findById(id, (err, dbReceitaId) => {
+                        // verificando o corpo da requisição
+                        if (!err) {
+                            if (dbReceitaId) {
+                                /*  OBS: ********* Nesse ponto será necessário verificar o codigo ********* */
+                                if (!descricao) {
+                                    res.status(422).json({ msg: `Descrição é obrigatório!` });
+                                } else if (!valor) {
+                                    res.status(422).json({ msg: `Valor é obrigatório!` });
+                                } else if (!data || (data.length < 10)) {
+                                    res.status(422).json({ msg: `Por favor preencha a data no formato "YYYY-MM-DD"` });
+                                } else {
+                                    // criando variaveis para data 
+                                    let dbData = Number(dbReceitaId.data.slice(5, 7));
+                                    let dataNew = Number(data.slice(5, 7));
+                                    // Verificando as datas, se a nova data é igual ou maior a do db.
+                                    if (dataNew >= dbData) {
+                                        // verificar se a descrição é a mesma.
+                                        if (dbReceitaId.descricao !== descricao) {
+                                            // verificar se há outra descrição idêntica!.
+                                            Receitas.findOne({ 'descricao': descricao })
+                                                .exec((error, dbReceitaOne) => {
+                                                    if (!error) {
+                                                        if (!dbReceitaOne) {
+                                                            Receitas.findByIdAndUpdate(id, { $set: req.body })
+                                                                .exec((err) => {
+                                                                    if (!err) {
+                                                                        res.status(201).json({ msg: `atualizado por descricão diferente!` })
+                                                                    } else {
+                                                                        res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                                    }
+                                                                })
                                                         } else {
-                                                            res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                            res.status(422).json({ msg: `Já existe uma descrição com esse nome, porfavor utilize outro!` })
                                                         }
-                                                    })
-                                            } else {
-                                                res.status(422).json({ msg: `Utilize outra data!` })
-                                            }
-                                        } else {
-                                            Receitas.findByIdAndUpdate(id, { $set: req.body })
-                                                .exec((err) => {
+                                                    }
+                                                })
+                                        } else { // Se a descrição for a mesma, verificar se não há outra descrição.
+                                            Receitas.findOne({ 'descricao': descricao })
+                                                .exec((err, dbReceitaOne) => {
+                                                    let dbDataOne = Number(dbReceitaOne.data.slice(5, 7));
                                                     if (!err) {
-                                                        res.status(201).json({ msg: `Atualizado com a mesma descrição!` })
+                                                        // Verificar se há outro objeto com mesma descrição
+                                                        if (dbReceitaOne) {
+                                                            // verificar se é o mesmo id
+                                                            if (dbReceitaOne.id !== id) {
+                                                                // se há outra descrição verificar a data
+                                                                if (dataNew >= dbDataOne) {
+                                                                    // atualizar receita com mesma descrição e data diferente
+                                                                    Receitas.findByIdAndUpdate(id, { $set: req.body })
+                                                                        .exec((err) => {
+                                                                            if (!err) {
+                                                                                res.status(201).json({ msg: `Atualizado com a mesma descrição!` })
+                                                                            } else {
+                                                                                res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                                            }
+                                                                        })
+                                                                } else {
+                                                                    res.status(422).json({ msg: `Utilize outra data!` })
+                                                                }
+                                                            } else {
+                                                                Receitas.findByIdAndUpdate(id, { $set: req.body })
+                                                                    .exec((err) => {
+                                                                        if (!err) {
+                                                                            res.status(201).json({ msg: `Atualizado com a mesma descrição!` })
+                                                                        } else {
+                                                                            res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                                        }
+                                                                    })
+                                                            }
+                                                        } else {
+                                                            // atualizar receita se acaso não encontrar outra descrição com mesmo nome
+                                                            Receitas.findByIdAndUpdate(id, { $set: req.body })
+                                                                .exec((err) => {
+                                                                    if (!err) {
+                                                                        res.status(201).json({ msg: `Atualizado com a mesma descrição sem verificar Id!` })
+                                                                    } else {
+                                                                        res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
+                                                                    }
+                                                                })
+                                                        }
                                                     } else {
                                                         res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
                                                     }
                                                 })
                                         }
                                     } else {
-                                        // atualizar receita se acaso não encontrar outra descrição com mesmo nome
-                                        Receitas.findByIdAndUpdate(id, { $set: req.body })
-                                            .exec((err) => {
-                                                if (!err) {
-                                                    res.status(201).json({ msg: `Atualizado com a mesma descrição sem verificar Id!` })
-                                                } else {
-                                                    res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
-                                                }
-                                            })
+                                        res.status(422).json({ msg: `Data inválida, coloque uma data válida` })
                                     }
-                                } else {
-                                    res.status(500).json({ msg: `Erro de servidor, tente mais tarde!` })
                                 }
-                            })
-                    }
+                            } else {
+                                res.status(500).json({ msg: `Id inexistente!` });
+                            }
+                        } else {
+                            res.status(500).json({ msg: `Erro verifique o Id !` })
+                        }
+                    })
                 } else {
-                    res.status(422).json({ msg: `Data inválida, coloque uma data válida` })
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                 }
-            }
-        })
+            })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
     }
     static deletarReceitaPorId = (req, res) => {
         /* Criando variavel para armarzenar o id da requisição */
         const id = req.params.id;
-        /* Verificando se existe o Id passado */
-        Receitas.findById(id, (err, dbReceita) => {
-            /* Verificando se há erro na requisição */
-            if (!err) {
-                /* verificando se existe o id solicitado */
-                if (dbReceita) {
-                    /*  Se existir o id o mesmo é excluido */
-                    Receitas.findByIdAndDelete(id, (err) => {
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
+        /* Verificar token */
+        if (token) {
+            /* Validar token*/
+            Jwt.verify(token, secret, (err) => {
+                if (!err) {
+                    /* Verificando se existe o Id passado */
+                    Receitas.findById(id, (err, dbReceita) => {
+                        /* Verificando se há erro na requisição */
                         if (!err) {
-                            res.status(201).json({ msg: `Receita de id: ${id} excluida com sucesso!` })
+                            /* verificando se existe o id solicitado */
+                            if (dbReceita) {
+                                /*  Se existir o id o mesmo é excluido */
+                                Receitas.findByIdAndDelete(id, (err) => {
+                                    if (!err) {
+                                        res.status(201).json({ msg: `Receita de id: ${id} excluida com sucesso!` })
+                                    } else {
+                                        res.status(500).json({ msg: `Erro no servidor, tente novamente mais tarde!` })
+                                    }
+                                })
+                            } else { // se não existir o id, uma mensagem é exibida
+                                res.status(422).json({ msg: `O id informado não existe!` })
+                            }
                         } else {
-                            res.status(500).json({ msg: `Erro no servidor, tente novamente mais tarde!` })
+                            res.status(500).json({ msg: `Ocorreu um erro na requisição, Verifique o id informado!` })
                         }
                     })
-                } else { // se não existir o id, uma mensagem é exibida
-                    res.status(422).json({ msg: `O id informado não existe!` })
-                }
-            } else {
-                res.status(500).json({ msg: `Ocorreu um erro na requisição, Verifique o id informado!` })
-            }
-        })
-    }
-    static listarReceitasPorMesAno = (req, res) => {
-        const { ano, mes } = req.query
-        Receitas.find()
-            .exec((err, dbReceitas) => {
-                if (!err) {
-                    const resultDbData = checkData(dbReceitas);
-                    if (resultDbData == '') {
-                        res.status(422).json({ msg: `Não há receitas nesta data ${ano}-${mes}` })
-                    } else {
-                        res.status(200).json(resultDbData)
-                    }
-                    // 
                 } else {
-                    res.status(422).json({ msg: `erro` })
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
                 }
             })
-
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
+    }
+    static listarReceitasPorMesAno = (req, res) => {
+        const { ano, mes } = req.params
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
+        /* Verificando token */
+        if (token) {
+            /* Valindado token */
+            Jwt.verify(token, secret, (err) => {
+                if (!err) {
+                    Receitas.find()
+                        .exec((err, dbReceitas) => {
+                            if (!err) {
+                                const resultDbData = checkData(dbReceitas);
+                                if (resultDbData == '') {
+                                    res.status(422).json({ msg: `Não há receitas nesta data ${ano}-${mes}` })
+                                } else {
+                                    res.status(200).json(resultDbData)
+                                }
+                                // 
+                            } else {
+                                res.status(422).json({ msg: `erro` })
+                            }
+                        })
+                } else {
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+                }
+            })
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
         function checkData(dbReceitas) {
             /* Variaveis para controlar e armazenar resultados */
             let data;
@@ -321,68 +386,88 @@ class receitasControllers {
     }
     static resumoDoMes = (req, res) => {
         const { anoNumber, mesNumber } = req.params;
-        /* Puxando informações do banco de dados! */
-        Receitas.find()
-            .exec((err, dbReceitas) => {
+        const authHeader = req.headers['authorization']
+        const token = authHeader && authHeader.split(' ')[1]
+        const secret = process.env.SECRET
+
+        /* Verificar token */
+        if (token) {
+            /* Validar token */            
+            Jwt.verify(token, secret, (err) => {
                 if (!err) {
-                    /* Verificando se tem informações de receitas no banco */
-                    if (dbReceitas == '') {// se acaso não tiver receita, verificar se há despesas.
-                        Despesas.find()
-                            .exec((err, dbDespesas) => {
-                                if (!err) {
-                                    /* Verificar se tem informações de despesas no banco */
-                                    if (dbDespesas == '') {// se acaso não ouver informações de despesas, enviar mensagem de que não há dados no banco de receita e despesas.
-                                        res.status(422).json({ msg: `Não é possivel detalhar as informações por não existir dados de receita e depesas` })
-                                    } else {// se ouver dados de Despesas, verificar a data e mês para resumir valores total da despesas do mes e total de cada categoria
-                                        /* Filtrar todos os dados por data informada */
-                                        const datasVerificadas = checkPorData(dbDespesas)
-                                        if (datasVerificadas == '') {
-                                            res.status(422).json({ msg: `Não há informações na data solicitada!` })
-                                        } else {
-                                            /* Filtrar os dados para somar gastos total de despesas e por categoria */
-                                            const totGastosMes = checkPorValores(datasVerificadas, dbReceitas);
-                                            res.status(200).json(totGastosMes)
+                     /* Puxando informações do banco de dados! */
+                    Receitas.find()
+                    .exec((err, dbReceitas) => {
+                        if (!err) {
+                            /* Verificando se tem informações de receitas no banco */
+                            if (dbReceitas == '') {// se acaso não tiver receita, verificar se há despesas.
+                                Despesas.find()
+                                    .exec((err, dbDespesas) => {
+                                        if (!err) {
+                                            /* Verificar se tem informações de despesas no banco */
+                                            if (dbDespesas == '') {// se acaso não ouver informações de despesas, enviar mensagem de que não há dados no banco de receita e despesas.
+                                                res.status(422).json({ msg: `Não é possivel detalhar as informações por não existir dados de receita e depesas` })
+                                            } else {// se ouver dados de Despesas, verificar a data e mês para resumir valores total da despesas do mes e total de cada categoria
+                                                /* Filtrar todos os dados por data informada */
+                                                const datasVerificadas = checkPorData(dbDespesas)
+                                                if (datasVerificadas == '') {
+                                                    res.status(422).json({ msg: `Não há informações na data solicitada!` })
+                                                } else {
+                                                    /* Filtrar os dados para somar gastos total de despesas e por categoria */
+                                                    const totGastosMes = checkPorValores(datasVerificadas, dbReceitas);
+                                                    res.status(200).json(totGastosMes)
+                                                }
+                                            }
+                                        } else {// se ouver erro na pesquisa de banco de dados
+                                            res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
                                         }
-                                    }
-                                } else {// se ouver erro na pesquisa de banco de dados
-                                    res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
-                                }
-                            })
-                    } else {// Se ouver receitas verificar se há despesas
-                        Despesas.find()
-                            .exec((err, dbDespesas) => {
-                                if (!err) {
-                                    /* Verificar se tem informações de despesas no banco */
-                                    if (dbDespesas == '') {// se acaso não ouver informações de despesas, enviar apenas dados de receita
-                                        /* criar codigo aqui *** */
-                                        const datasVerificadas = checkPorData(dbReceitas)
-                                        if (datasVerificadas == '') {
-                                            res.status(422).json({ msg: `Não há informações na data solicitada!` })
-                                        } else {
-                                            /* Filtrar os dados para somar gastos total de despesas e por categoria */
-                                            const totGastosMes = checkPorValores(dbDespesas, datasVerificadas);
-                                            res.status(200).json(totGastosMes)
+                                    })
+                            } else {// Se ouver receitas verificar se há despesas
+                                Despesas.find()
+                                    .exec((err, dbDespesas) => {
+                                        if (!err) {
+                                            /* Verificar se tem informações de despesas no banco */
+                                            if (dbDespesas == '') {// se acaso não ouver informações de despesas, enviar apenas dados de receita
+                                                /* criar codigo aqui *** */
+                                                const datasVerificadas = checkPorData(dbReceitas)
+                                                if (datasVerificadas == '') {
+                                                    res.status(422).json({ msg: `Não há informações na data solicitada!` })
+                                                } else {
+                                                    /* Filtrar os dados para somar gastos total de despesas e por categoria */
+                                                    const totGastosMes = checkPorValores(dbDespesas, datasVerificadas);
+                                                    res.status(200).json(totGastosMes)
+                                                }
+                                            } else {// Se ouver dados filtrar total de despesas, total de receitas, saldo final e total gasto no mês por categoria
+                                                const datasVerificadas = checkPorData(dbDespesas)
+                                                const datasVerificadasReceitas = checkPorData(dbReceitas)
+                                                if ((datasVerificadas == '') && (datasVerificadasReceitas == '')) {
+                                                    res.status(422).json({ msg: `Não há informações na data solicitada!` })
+                                                } else {
+                                                    /* Filtrar os dados para somar gastos total de despesas e por categoria */
+                                                    const totGastosMes = checkPorValores(datasVerificadas, datasVerificadasReceitas);
+                                                    res.status(200).json(totGastosMes)
+                                                }
+                                            }
+                                        } else {// se ouver erro na pesquisa de banco de dados
+                                            res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
                                         }
-                                    } else {// Se ouver dados filtrar total de despesas, total de receitas, saldo final e total gasto no mês por categoria
-                                        const datasVerificadas = checkPorData(dbDespesas)
-                                        const datasVerificadasReceitas = checkPorData(dbReceitas)
-                                        if ((datasVerificadas == '') && (datasVerificadasReceitas == '')) {
-                                            res.status(422).json({ msg: `Não há informações na data solicitada!` })
-                                        } else {
-                                            /* Filtrar os dados para somar gastos total de despesas e por categoria */
-                                            const totGastosMes = checkPorValores(datasVerificadas, datasVerificadasReceitas);
-                                            res.status(200).json(totGastosMes)
-                                        }
-                                    }
-                                } else {// se ouver erro na pesquisa de banco de dados
-                                    res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
-                                }
-                            })
-                    }
-                } else {// se ouver erro na pesquisa de banco de dados 
-                    res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
+                                    })
+                            }
+                        } else {// se ouver erro na pesquisa de banco de dados 
+                            res.status(500).json({ msg: `Erro, tente novamente mais tarde!` })
+                        }
+                    })                  
+                } else {
+                    res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` });                    
                 }
-            })
+            })     
+        } else {
+            res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
+        }
+       
+
+
+
         function checkPorData(dataBase) {
             /* VAriaveis para controlar data e receber os objs do banco de dados */
             let result = [];
