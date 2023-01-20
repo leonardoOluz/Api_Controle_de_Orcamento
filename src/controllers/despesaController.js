@@ -237,94 +237,68 @@ class despesasControllers {
         const token = authHeader && authHeader.split(' ')[1]
         const secret = process.env.SECRET
 
-        if (token) {
-            /* Validar token */
+         /* Verificar token */
+         if (token) {
+            /* Válidar token */
             jwt.verify(token, secret, (err) => {
                 if (!err) {
                     if (!descricao) {
-                        res.status(422).json({ msg: `Descrição é obrigatório!` });
+                        res.status(422).json({ mensagem: `Descrição é obrigatório!` })
                     } else if (!valor) {
-                        res.status(422).json({ msg: `Valor é obrigatório!` });
+                        res.status(422).json({ mensagem: `Valor é obrigatório!` })
                     } else if (!data || (data.length < 10)) {
-                        res.status(422).json({ msg: `Por favor preencha a data no formato YYYY-MM-DD` });
+                        res.status(422).json({ msg: `Por favor preencha a data no formato YYYY-MM-DD` })
                     } else {
-                        /* Verificar a existencia do id no banco de dados */
-                        Despesas.findById(id, (err, dbDespesa) => {
-                            /* verificando erro de servidor se a caso não, entra no if*/
+                        /* Verificando a existência do ID */
+                        Despesas.findById(id, (err, dbDespesad) => {
                             if (!err) {
-                                /* Verificando se retorna dados do banco */
-                                if (dbDespesa) {
-                                    /* Criando variaveis de controle de data */
-                                    const dbData = Number(dbDespesa.data.slice(5, 7))
+                                if (dbDespesad) {
+                                    /* Se existir o ID verificar a data nova com a data do banco */
+                                    const dbData = Number(dbDespesad.data.slice(5, 7))
                                     const dataNew = Number(data.slice(5, 7))
-                                    /* Verificar se as descrições são a mesma */
-                                    if (dbDespesa.descricao !== descricao) {
-                                        /* Se a descrição forem diferentes verificar outros descrições no banco */
-                                        Despesas.find({ 'descricao': descricao }, (err, dbPorDescricao) => {
+                                    /*  verificar se a data nova é igual ou superior a data da Despesas existente */
+                                    if (dataNew >= dbData) {
+                                        /* Verificar no banco a existência de mesma descrição*/
+                                        Despesas.find({ 'descricao': descricao }, (err, dbDescricaoDespesas) => {
                                             if (!err) {
-                                                /* Se ouver descrição informar há existência da descrição e solicitar que atualize a descrição ou crie outra*/
-                                                if (dbPorDescricao) {
-                                                    // verificar se as datas são identicas
-                                                    const dataChecada = checkData(dbPorDescricao)
-                                                    if (dataChecada.includes(Number(data.slice(5, 7)))) {
-                                                        res.status(422).json({mensagem: `Não é possível atualizar com essa data devido a existência de descrição com mesma data!`})
-                                                    } else {// senão ouver data e a mesma for superior a atual atualizar
-                                                        if (dataNew >= dbData) {
-                                                            Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
-                                                                if (!err) {
-                                                                    res.status(201).json({ msg: `Atualizado com descrição nova` })
-                                                                } else {
-                                                                    res.status(422).json({ msg: `Erro para atualizar, verifique o ID` })
-                                                                }
-                                                            })
-                                                        } else { // se data for for da atual informar data invalida
-                                                            res.status(422).json({ msg: `data inferior a informada, coloque uma data válida` })
-                                                        }                                                        
-                                                    }                                                    
-                                                } else {
-                                                    /* Se não existir outra descrição informada, verificar data se igual ou superior a atual*/
-                                                    if (dataNew >= dbData) {
+                                                /* Verificar existência de dados com mesma descrição no banco */
+                                                if (dbDescricaoDespesas) {
+                                                    /* verificar as datas com mesma descrição */
+                                                    const dataChecada = checkData(dbDescricaoDespesas)
+                                                    /* Se retornar vazio o datachecada não existe datas repetidas e pode atualizar */
+                                                    if (dataChecada == '') {
                                                         Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
                                                             if (!err) {
-                                                                res.status(201).json({ msg: `Atualizado com descrição nova` })
+                                                                res.status(201).json({ msg: `Dados atualizado com  sucesso` })
                                                             } else {
                                                                 res.status(422).json({ msg: `Erro para atualizar, verifique o ID` })
                                                             }
                                                         })
-                                                    } else { // se data for for da atual informar data invalida
-                                                        res.status(422).json({ msg: `data inferior a informada, coloque uma data válida` })
+                                                    } else {
+                                                        res.status(422).json({ mensagem: `Não é possível atualizar os dados com esta data, Descrição com data existente` })
                                                     }
+                                                } else {
+                                                    /* Aqui atualizar dados sem necessidade  de verificar pois não existe outras descrições*/
+                                                    Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
+                                                        if (!err) {
+                                                            res.status(201).json({ msg: `Dados atualizado com  sucesso` })
+                                                        } else {
+                                                            res.status(422).json({ msg: `Erro para atualizar, verifique o ID` })
+                                                        }
+                                                    })
                                                 }
                                             } else {
-                                                res.status(500).json({ msg: `Não foi possivel pesquisar pela descrição` })
+                                                res.status(422).json({ mensagem: `Não foi possìvel identificar a descrição` })
                                             }
                                         })
-
                                     } else {
-                                        /* Se as descrições forem iguais, verificar as datas */
-                                        if (dataNew >= dbData) {
-                                            /* Se a data for igual ou maior  */
-                                            Despesas.findByIdAndUpdate(id, { $set: req.body }, (err) => {
-                                                /* Atualizar com mesma descrição */
-                                                if (!err) {
-                                                    res.status(201).json({ msg: `Atualizado com a mesma descrição` })
-                                                } else {
-                                                    res.status(500).json({ msg: `Erro para atualizar, verifique o ID` })
-                                                }
-                                            })
-                                        } else {
-                                            /* Se for abaixo do informado enviar msg de data inválida */
-                                            res.status(422).json({ msg: `data inferior a informada, coloque uma data válida` })
-                                        }
+                                        res.status(422).json({ mensagem: `Não é possível atualizar com data anterior, verifique e atualize a data!` })
                                     }
                                 } else {
-                                    /* Não ouver dados no banco, impossível atualizar */
-                                    res.status(422).json({ msg: `Não há dados no banco!` })
+                                    res.status(422).json({ msg: `Não existe dados no banco com este ID ${id}!` })
                                 }
-
                             } else {
-                                /* Caso tiver erro manda msg de erro */
-                                res.status(422).json({ msg: `Erro na requisição verifique o id informado!` })
+                                res.status(500).json({ msg: `Erro verifique o Id !` })
                             }
                         })
                     }
@@ -335,15 +309,13 @@ class despesasControllers {
         } else {
             res.status(422).json({ msg: `Você não tem permissões para acessar o sistema!` })
         }
-        /* função verificar as datas */
+        /* Função de verificação de datas */
         function checkData(dbDat) {
             let control = [];
             dbDat.forEach((obj) => {
-
-                if (Number(data.slice(5, 7)) === Number(obj.data.slice(5, 7))) {
+                if ((`${obj._id}` !== `${id}`) && (Number(data.slice(5, 7)) === Number(obj.data.slice(5, 7)))) {
                     control.push(Number(obj.data.slice(5, 7)))
                 }
-
             })
             return control;
         }
